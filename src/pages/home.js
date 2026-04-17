@@ -59,6 +59,7 @@ function initHero() {
   const heroHeading = document.querySelector('[data-hero-heading]')
 
   gsap.set('.h-hero_bg-fade', { opacity: 1 })
+  gsap.set('.rotating-image-trail', { pointerEvents: 'none' })
 
   const tl = gsap.timeline({
     defaults: {
@@ -78,7 +79,18 @@ function initHero() {
     })
     .fromTo('.h-hero_img', { scale: 1 }, { scale: 1.2, duration: 2.5, ease: 'expo.inOut' }, '<')
 
-  tl.fromTo('.h-hero_mask', { yPercent: -100 }, { yPercent: 0, duration: 1.4 }, '-=2')
+  tl.fromTo(
+    '.h-hero_mask',
+    { yPercent: -100 },
+    {
+      yPercent: 0,
+      duration: 1.4,
+      onComplete: () => {
+        gsap.set('.rotating-image-trail', { pointerEvents: 'auto' })
+      },
+    },
+    '-=2'
+  )
 
   gsap.set('.mega-nav', { yPercent: -100 })
 
