@@ -1,9 +1,7 @@
 import gsap from 'gsap'
 import { BREAKPOINTS } from './utils/breakpoints.js'
 import { initHome } from './pages/home.js'
-import { initContact } from './pages/contact.js'
 import { initGlobal } from './global.js'
-
 ;(() => {
   // =============================================
   // GSAP SETUP
@@ -22,6 +20,17 @@ import { initGlobal } from './global.js'
   }
 
   // =============================================
+  // HELPERS
+  // =============================================
+  function debounce(fn, delay = 200) {
+    let timeout
+    return (...args) => {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => fn(...args), delay)
+    }
+  }
+
+  // =============================================
   // INIT
   // =============================================
   function init() {
@@ -29,7 +38,6 @@ import { initGlobal } from './global.js'
     if (!page) return
 
     if (page.classList.contains('is-home')) initHome()
-    if (page.classList.contains('is-contact')) initContact()
 
     initGlobal()
   }

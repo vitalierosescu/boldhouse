@@ -10,6 +10,9 @@ const splitConfig = {
  * @param {Object} [options]
  * @param {Object} [options.scrollTrigger] - ScrollTrigger config. If omitted, plays immediately.
  * @param {number} [options.delay] - Delay before animation starts
+ * @param {number} [options.duration] - Override duration (seconds)
+ * @param {number} [options.stagger] - Override stagger (seconds)
+ * @param {string} [options.ease] - Override ease
  * @param {string} [options.type] - Override split type ('lines', 'words', 'chars')
  */
 export function splitReveal(element, options = {}) {
@@ -38,9 +41,9 @@ export function splitReveal(element, options = {}) {
 
       const tweenVars = {
         yPercent: 0,
-        stagger: parseInt(element.dataset.stagger) || config.stagger,
-        duration: parseInt(element.dataset.duration) || config.duration,
-        ease: 'expo.out',
+        stagger: options.stagger ?? parseFloat(element.dataset.stagger) ?? config.stagger,
+        duration: options.duration ?? parseFloat(element.dataset.duration) ?? config.duration,
+        ease: options.ease || 'expo.out',
         delay: options.delay || 0,
       }
 
