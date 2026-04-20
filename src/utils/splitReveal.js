@@ -25,6 +25,8 @@ export function splitReveal(element, options = {}) {
         ? ['lines', 'words']
         : ['lines', 'words', 'chars']
 
+  const config = splitConfig[type]
+
   SplitText.create(element, {
     type: typesToSplit.join(', '),
     mask: 'lines',
@@ -32,17 +34,16 @@ export function splitReveal(element, options = {}) {
     linesClass: 'line',
     wordsClass: 'word',
     charsClass: splitType === 'heading' ? 'letter' : undefined,
-    onSplit: function (instance) {
-      const targets = instance[type]
-      const config = splitConfig[type]
+    onSplit(self) {
+      const targets = self[type]
+      if (!targets?.length) return
 
-      // Hide targets immediately so text is invisible until animated
       gsap.set(targets, { yPercent: 110 })
 
       const tweenVars = {
         yPercent: 0,
-        stagger: options.stagger ?? parseFloat(element.dataset.stagger) ?? config.stagger,
-        duration: options.duration ?? parseFloat(element.dataset.duration) ?? config.duration,
+        stagger: options.stagger ?? (parseFloat(element.dataset.stagger) || config.stagger),
+        duration: options.duration ?? (parseFloat(element.dataset.duration) || config.duration),
         ease: options.ease || 'expo.out',
         delay: options.delay || 0,
       }

@@ -2,19 +2,7 @@ import { splitReveal } from './utils/splitReveal.js'
 
 gsap.registerPlugin(ScrollTrigger, CustomEase, SplitText)
 
-function initTextAnimations() {
-  document.querySelectorAll('[data-split]').forEach((el) => {
-    if (el.closest('[data-hero]')) return
-
-    splitReveal(el, {
-      scrollTrigger: {
-        trigger: el,
-        start: 'clamp(top 90%)',
-        once: true,
-      },
-    })
-  })
-}
+let PARALLAX_MM // holds the matchMedia instance for this feature only
 
 const initForm = () => {
   if (!document.querySelector('.form_input')) return
@@ -108,10 +96,15 @@ function initAfterEnterFunctions(next) {
   if (has('[data-logo-wall-cycle-init]')) initLogoWallCycle()
   initStackingStickyCardsBounce()
   initTypoScrollPreview()
+  initParallax()
 
   if (hasLenis) {
     lenis.resize()
   }
+
+  document.fonts.ready.then(() => {
+    initTextAnimations()
+  })
 
   if (hasScrollTrigger) {
     ScrollTrigger.refresh()
@@ -133,7 +126,9 @@ function runPageOnceAnimation(next) {
     0
   )
 
-  return tl
+  return new Promise((resolve) => {
+    tl.call(resolve)
+  })
 }
 
 function runPageLeaveAnimation(current, next) {
@@ -206,7 +201,7 @@ function runPageEnterAnimation(next) {
     return new Promise((resolve) => tl.call(resolve, null, 'pageReady'))
   }
 
-  tl.add('startEnter', 0.8)
+  tl.add('startEnter', 1.25)
   tl.set(next, { autoAlpha: 1 }, 'startEnter')
 
   tl.fromTo(
@@ -1641,7 +1636,69 @@ function initTypoScrollPreview() {
   }
 }
 
+const buildParallax = () => {
+  if (!document.querySelector('[data-parallax]')) return
+
+  PARALLAX_MM.add('(min-width: 992px)', () => {
+    document.querySelectorAll('[data-parallax]').forEach((parallaxParent) => {
+      const parallaxImg = parallaxParent.querySelector('.parallax')
+      if (!parallaxImg) return
+
+      gsap
+        .timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: {
+            trigger: parallaxParent,
+            start: 'clamp(top bottom)',
+            end: 'bottom top',
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        })
+        .to(parallaxImg, { yPercent: 18 })
+    })
+  })
+
+  PARALLAX_MM.add('(max-width: 991px)', () => {
+    document.querySelectorAll('[data-parallax]').forEach((parallaxParent) => {
+      const parallaxImg = parallaxParent.querySelector('.parallax')
+      if (parallaxImg) gsap.set(parallaxImg, { clearProps: 'all' })
+    })
+  })
+}
+const initParallax = () => {
+  if (PARALLAX_MM) PARALLAX_MM.revert() // clean up ONLY previous parallax setup
+  PARALLAX_MM = gsap.matchMedia()
+  buildParallax()
+  // defer to next frame so layout/inputs settle first
+  requestAnimationFrame(() => ScrollTrigger.refresh())
+}
+
+// re-run whenever any watched input changes (use the class on your inputs)
+document.addEventListener('change', (e) => {
+  console.log('changed')
+  setTimeout(() => {
+    const watched = e.target.closest('.js-rerun-parallax')
+    if (!watched) return
+    initParallax()
+    console.log('changed with delay')
+  }, 500)
+})
+
+function initTextAnimations() {
+  document.querySelectorAll('[data-split]').forEach((el) => {
+    if (el.closest('[data-hero]')) return
+
+    splitReveal(el, {
+      scrollTrigger: {
+        trigger: el,
+        start: 'clamp(top 90%)',
+        once: true,
+      },
+    })
+  })
+}
+
 export function initGlobal() {
-  initTextAnimations()
   initForm()
 }

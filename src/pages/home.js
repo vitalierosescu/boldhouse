@@ -1,12 +1,13 @@
 import { MQ } from '../utils/breakpoints.js'
 import { splitReveal } from '../utils/splitReveal.js'
 
-gsap.registerPlugin(InertiaPlugin)
+gsap.registerPlugin(InertiaPlugin, DrawSVGPlugin)
 
 CustomEase.create('drift', 'M0,0 C0.65,0 0,1.04 1,1')
 
 const initHeroParallax = () => {
   const hero = document.querySelector('[data-hero-target]')
+  const heroImg = document.querySelector('.h-hero_img')
   if (!hero) return
   const mm = gsap.matchMedia()
   mm.add(MQ.tabletUp, () => {
@@ -24,7 +25,7 @@ const initHeroParallax = () => {
       })
 
       tl.to(
-        hero,
+        heroImg,
         {
           y: '10vh',
           filter: 'brightness(30%)',
@@ -33,23 +34,14 @@ const initHeroParallax = () => {
         0
       )
 
-      tl.to(
-        '.home--hero_img',
-        {
-          scale: '1.15',
-          ease: 'none',
-        },
-        0
-      )
-
-      gsap.set(hero, { filter: 'brightness(100%)' })
+      gsap.set(heroImg, { filter: 'brightness(100%)' })
     }
 
     animateHero()
   })
   // Remove animations on tablet and down
   mm.add(MQ.tabletDown, () => {
-    gsap.set(hero, { clearProps: 'all' })
+    gsap.set(heroImg, { clearProps: 'all' })
     ScrollTrigger.refresh()
   })
 }
@@ -64,6 +56,7 @@ function initHero() {
   const tl = gsap.timeline({
     defaults: {
       ease: 'cubic-bezier(.5,0,.05,1.01)',
+      // ease: 'cubic-bezier(.5,0,.05,1.01)',
     },
   })
 
@@ -132,6 +125,95 @@ function initHero() {
   }
 }
 
+function initHeroNew() {
+  const logoPaths = document.querySelectorAll('[data-hero-svg] path')
+
+  const heroHeadings = document.querySelectorAll('[data-hero-heading]')
+  const linkList = document.querySelector('.h-hero-2_link-list')
+
+  CustomEase.create('nav', '.5,0,.05,1.01')
+
+  // CustomEase.create('bounce', '.34,-0.34,.08,.99')
+  const tl = gsap.timeline({
+    defaults: {
+      // ease: 'cubic-bezier(.5,0,.05,1.01)',
+      ease: 'nav',
+    },
+  })
+
+  gsap.set('.mega-nav', { yPercent: -100 })
+
+  tl.fromTo(
+    '.h-hero_bg',
+    { clipPath: 'polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)' },
+    { clipPath: 'polygon(42% 38%, 58% 38%, 58% 62%, 42% 62%)', duration: 0.6, ease: 'power3.out' }
+  )
+    .to('.h-hero_bg', {
+      clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+      duration: 1,
+      ease: 'expo.inOut',
+      // ease: 'bounce',
+    })
+    .fromTo('.h-hero_img', { scale: 1 }, { scale: 1.2, duration: 1.5, ease: 'expo.inOut' }, '<')
+
+  /* Logo */
+  tl.fromTo(
+    logoPaths,
+    {
+      yPercent: 160,
+    },
+    {
+      yPercent: 0,
+      stagger: {
+        amount: 0.2,
+        ease: 'power4.inOut',
+        from: 'center',
+      },
+      duration: 2,
+      onComplete: () => {
+        // initMomentumBasedHover()
+        gsap.set('[data-hero-svg]', { overflow: 'visible' })
+      },
+    },
+    '-=2'
+  )
+
+  tl.to('.mega-nav', { yPercent: 0, duration: 1.5 }, '<')
+
+  if (linkList) {
+    const links = Array.from(linkList.querySelectorAll('.h-hero-2_link'))
+    const listRect = linkList.getBoundingClientRect()
+    const linkRects = links.map((el) => el.getBoundingClientRect())
+    const gap = 32
+    const totalCompressedWidth =
+      linkRects.reduce((sum, r) => sum + r.width, 0) + gap * (links.length - 1)
+    let cursor = listRect.left + (listRect.width - totalCompressedWidth) / 2
+    const fromX = linkRects.map((r) => {
+      const offset = cursor - r.left
+      cursor += r.width + gap
+      return offset
+    })
+    tl.fromTo(links, { x: (i) => fromX[i] }, { x: 0, duration: 2.5, ease: 'expo.inOut' }, '<')
+  }
+
+  /* Button */
+  tl.fromTo(
+    '.section_h-hero-2 .button',
+    { clipPath: 'inset(100% 0% 0% 0%)' },
+    { clipPath: 'inset(0% 0% 0% 0%)', duration: 1 },
+    '-=.6'
+  )
+
+  heroHeadings.forEach((heading) => {
+    splitReveal(heading, {
+      delay: 1.4,
+      duration: 1.2,
+      stagger: 0.12,
+      // ease: 'power4.out',
+    })
+  })
+}
+
 function initMomentumBasedHover() {
   // If this device can’t hover with a fine pointer, stop here
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
@@ -139,9 +221,9 @@ function initMomentumBasedHover() {
   }
 
   // Configuration (tweak these for feel)
-  const xyMultiplier = 30 // multiplies pointer velocity for x/y movement
+  const xyMultiplier = 15 // multiplies pointer velocity for x/y movement
   const rotationMultiplier = 20 // multiplies normalized torque for rotation speed
-  const inertiaResistance = 200 // higher = stops sooner
+  const inertiaResistance = 500 // higher = stops sooner
 
   // Pre-build clamp functions for performance
   const clampXY = gsap.utils.clamp(-1080, 1080)
@@ -170,7 +252,7 @@ function initMomentumBasedHover() {
     // Attach hover inertia to each child element
     root.querySelectorAll('[data-momentum-hover-element]').forEach((el) => {
       el.addEventListener('mouseenter', (e) => {
-        const target = el.querySelector('[data-momentum-hover-target]')
+        const target = el.querySelector('[data-momentum-hover-target]') || el.querySelector('path')
         if (!target) return
 
         // Compute offset from center to pointer
@@ -440,17 +522,120 @@ const initPerks = () => {
   })
   // Remove animations on tablet and down
   mm.add(MQ.tabletDown, () => {
-    gsap.set(hero, { clearProps: 'all' })
+    gsap.set(target, { clearProps: 'all' })
     ScrollTrigger.refresh()
+  })
+}
+
+function initHeroClipHover() {
+  const links = document.querySelectorAll('.h-hero-2_link')
+  const clipImages = document.querySelectorAll('.h-hero_clip-img')
+  const defaultImage = document.querySelector('.h-hero_img.is--default')
+  const bgImages = Array.from(document.querySelectorAll('.h-hero_img')).filter(
+    (img) => !img.classList.contains('is--default')
+  )
+  if (!links.length) return
+
+  const fadeEls = document.querySelectorAll('.mega-nav, .h-hero-2_svg-wrap, .h-hero-2_bottom')
+  const DURATION = 0.6
+  const EASE = 'drift'
+  let isHovering = false
+  let enterCall = null
+  let leaveCall = null
+
+  gsap.set(clipImages, { clipPath: 'inset(100% 0% 0% 0%)' })
+  gsap.set(bgImages, { autoAlpha: 0 })
+  if (defaultImage) gsap.set(defaultImage, { autoAlpha: 1 })
+
+  links.forEach((link, index) => {
+    const clipImg = clipImages[index]
+    const bgImg = bgImages[index]
+
+    link.addEventListener('mouseenter', () => {
+      isHovering = true
+      if (leaveCall) leaveCall.kill()
+      if (enterCall) enterCall.kill()
+
+      enterCall = gsap.delayedCall(0.15, () => {
+        // Clip image reveal bottom to top
+        gsap.set(clipImages, { zIndex: 0 })
+        if (clipImg) {
+          gsap.set(clipImg, { zIndex: 1 })
+          gsap.to(clipImg, {
+            clipPath: 'inset(0% 0% 0% 0%)',
+            duration: DURATION,
+            ease: EASE,
+            overwrite: true,
+          })
+        }
+
+        clipImages.forEach((img, i) => {
+          if (i !== index) {
+            gsap.to(img, {
+              clipPath: 'inset(0% 0% 100% 0%)',
+              duration: DURATION,
+              ease: EASE,
+              overwrite: true,
+            })
+          }
+        })
+
+        // Background image swap
+        if (bgImg) gsap.to(bgImg, { autoAlpha: 1, duration: DURATION, ease: EASE, overwrite: true })
+        if (defaultImage)
+          gsap.to(defaultImage, { autoAlpha: 0, duration: DURATION, ease: EASE, overwrite: true })
+
+        bgImages.forEach((img, i) => {
+          if (i !== index) {
+            gsap.to(img, { autoAlpha: 0, duration: DURATION, ease: EASE, overwrite: true })
+          }
+        })
+
+        // Fade surrounding elements
+        gsap.to(fadeEls, { opacity: 0.1, duration: DURATION, ease: EASE, overwrite: true })
+
+        links.forEach((l) => {
+          gsap.to(l, {
+            opacity: l === link ? 1 : 0.1,
+            duration: DURATION,
+            ease: EASE,
+            overwrite: true,
+          })
+        })
+      })
+    })
+
+    link.addEventListener('mouseleave', () => {
+      isHovering = false
+      if (enterCall) enterCall.kill()
+
+      leaveCall = gsap.delayedCall(0.15, () => {
+        if (isHovering) return
+        if (clipImg)
+          gsap.to(clipImg, {
+            clipPath: 'inset(0% 0% 100% 0%)',
+            duration: DURATION,
+            ease: EASE,
+            overwrite: true,
+          })
+        if (bgImg) gsap.to(bgImg, { autoAlpha: 0, duration: DURATION, ease: EASE, overwrite: true })
+        if (defaultImage)
+          gsap.to(defaultImage, { autoAlpha: 1, duration: DURATION, ease: EASE, overwrite: true })
+        gsap.to(fadeEls, { opacity: 1, duration: DURATION, ease: EASE, overwrite: true })
+        gsap.to(links, { opacity: 1, duration: DURATION, ease: EASE, overwrite: true })
+      })
+    })
   })
 }
 
 export function initHome() {
   initHeroParallax()
-  initHero()
+  // initHero()
+  initHeroNew()
   initClippingImageTrail()
   // initMomentumBasedHover()
   initPerks()
   initAcceleratingGlobe()
   initRoomsBackground()
+  initHeroClipHover()
 }
