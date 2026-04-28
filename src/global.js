@@ -1,6 +1,7 @@
 import { splitReveal } from './utils/splitReveal.js'
+import { MQ } from './utils/breakpoints.js'
 
-gsap.registerPlugin(ScrollTrigger, CustomEase, SplitText)
+gsap.registerPlugin(ScrollTrigger, CustomEase, SplitText, Draggable, InertiaPlugin)
 
 let PARALLAX_MM // holds the matchMedia instance for this feature only
 
@@ -54,9 +55,10 @@ const has = (s) => !!nextPage.querySelector(s)
 
 let staggerDefault = 0.05
 let durationDefault = 0.6
+let easeDefault = 'boldhouse'
 
 CustomEase.create('boldhouse', '.5,0,.05,1.01')
-gsap.defaults({ ease: 'boldhouse', duration: durationDefault })
+gsap.defaults({ ease: easeDefault, duration: durationDefault })
 
 // -----------------------------------------
 // FUNCTION REGISTRY
@@ -94,9 +96,15 @@ function initAfterEnterFunctions(next) {
   //initMegaNavDirectionalHover()
 
   if (has('[data-logo-wall-cycle-init]')) initLogoWallCycle()
-  initStackingStickyCardsBounce()
+  if (has('[data-stacking-cards-init]')) initStackingStickyCardsBounce()
   initTypoScrollPreview()
   initParallax()
+  initPerkTooltips()
+  initOverlappingSlider()
+  initFaq()
+
+  if (has('.network_component')) initClubNetwork()
+  if (has('.gallery_component')) initClubGallery()
 
   if (hasLenis) {
     lenis.resize()
@@ -341,8 +349,8 @@ function initLenis() {
   if (!hasLenis) return
 
   lenis = new Lenis({
-    lerp: 0.165,
-    wheelMultiplier: 1.25,
+    // lerp: 0.165,
+    wheelMultiplier: 0.5,
   })
 
   if (hasScrollTrigger) {
@@ -1666,6 +1674,7 @@ const buildParallax = () => {
     })
   })
 }
+
 const initParallax = () => {
   if (PARALLAX_MM) PARALLAX_MM.revert() // clean up ONLY previous parallax setup
   PARALLAX_MM = gsap.matchMedia()
@@ -1674,28 +1683,458 @@ const initParallax = () => {
   requestAnimationFrame(() => ScrollTrigger.refresh())
 }
 
-// re-run whenever any watched input changes (use the class on your inputs)
-document.addEventListener('change', (e) => {
-  console.log('changed')
-  setTimeout(() => {
-    const watched = e.target.closest('.js-rerun-parallax')
-    if (!watched) return
-    initParallax()
-    console.log('changed with delay')
-  }, 500)
-})
-
 function initTextAnimations() {
   document.querySelectorAll('[data-split]').forEach((el) => {
-    if (el.closest('[data-hero]')) return
+    if (el.closest('[data-hero]')) {
+      splitReveal(el, {
+        delay: 0,
+        duration: 1.2,
+        stagger: 0.12,
+        // ease: 'power4.out',
+      })
+    } else {
+      splitReveal(el, {
+        scrollTrigger: {
+          trigger: el,
+          start: 'clamp(top 90%)',
+          once: true,
+        },
+      })
+    }
+  })
+}
 
-    splitReveal(el, {
-      scrollTrigger: {
-        trigger: el,
-        start: 'clamp(top 90%)',
-        once: true,
+function initPerkTooltips() {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+
+  const items = document.querySelectorAll('.typo-scroll__item')
+  if (!items.length) return
+
+  const OFFSET_X = 16
+  const OFFSET_Y = 16
+
+  items.forEach((item) => {
+    const tooltip = item.querySelector('.perk_tooltip')
+    const tooltipBg = item.querySelector('.perk_tooltip_bg')
+    const tooltipText = item.querySelector('.perk_tooltip_p')
+    if (!tooltip || !tooltipBg || !tooltipText) return
+
+    gsap.set(tooltip, {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      pointerEvents: 'none',
+      autoAlpha: 0,
+      x: -9999,
+      y: -9999,
+    })
+    gsap.set(tooltipBg, { clipPath: 'inset(0 100% 0 0)' })
+
+    let chars = []
+    SplitText.create(tooltipText, {
+      type: 'lines, words, chars',
+      mask: 'lines',
+      linesClass: 'line',
+      autoSplit: true,
+      onSplit(self) {
+        chars = self.chars
+        gsap.set(chars, { yPercent: 110 })
       },
     })
+
+    const xTo = gsap.quickTo(tooltip, 'x', { duration: 0.4, ease: 'power3.out' })
+    const yTo = gsap.quickTo(tooltip, 'y', { duration: 0.4, ease: 'power3.out' })
+
+    let active = false
+
+    item.addEventListener('mouseenter', () => {
+      active = true
+      gsap.killTweensOf([tooltip, tooltipBg, chars])
+      gsap.to(tooltip, { autoAlpha: 1, duration: 0.15, overwrite: 'auto' })
+      gsap.to(tooltipBg, {
+        clipPath: 'inset(0 0% 0 0)',
+        duration: 0.6,
+        ease: 'expo.out',
+        overwrite: 'auto',
+      })
+      gsap.fromTo(
+        chars,
+        { yPercent: 110 },
+        {
+          yPercent: 0,
+          duration: 0.5,
+          stagger: 0.012,
+          ease: 'expo.out',
+          delay: 0.1,
+          overwrite: 'auto',
+        }
+      )
+    })
+
+    item.addEventListener('mouseleave', () => {
+      active = false
+      gsap.killTweensOf([tooltip, tooltipBg, chars])
+      gsap.to(tooltipBg, {
+        clipPath: 'inset(0 100% 0 0)',
+        duration: 0.4,
+        ease: 'expo.in',
+        overwrite: 'auto',
+      })
+      gsap.to(chars, {
+        yPercent: 110,
+        duration: 0.3,
+        stagger: 0.005,
+        ease: 'expo.in',
+        overwrite: 'auto',
+      })
+      gsap.to(tooltip, { autoAlpha: 0, duration: 0.2, delay: 0.25, overwrite: 'auto' })
+    })
+
+    item.addEventListener('mousemove', (e) => {
+      if (!active) return
+      xTo(e.clientX + OFFSET_X)
+      yTo(e.clientY + OFFSET_Y)
+    })
+  })
+}
+
+function initOverlappingSlider() {
+  const inits = document.querySelectorAll('[data-overlap-slider-init]')
+  if (!inits.length) return
+
+  inits.forEach(setupOverlappingSlider)
+
+  function setupOverlappingSlider(init) {
+    // --- attributes with defaults
+    const minScale = +(init.getAttribute('data-scale') ?? 0.45)
+    const maxRotation = +(init.getAttribute('data-rotate') ?? -8)
+    const inertia = true
+
+    const wrap = init.querySelector('[data-overlap-slider-collection]')
+    const slider = init.querySelector('[data-overlap-slider-list]')
+    const slides = Array.from(init.querySelectorAll('[data-overlap-slider-item]'))
+
+    if (!wrap || !slider || !slides.length) {
+      console.warn(
+        'OverlappingSlider: missing required structure. Check Osmo Vault documentation please.'
+      )
+      return
+    }
+
+    wrap.style.touchAction = 'none'
+    wrap.style.userSelect = 'none'
+
+    let spacing = 0
+    let slideW = 0
+    let maxDrag = 0
+    let dragX = 0
+    let draggable
+
+    // simple clamp that always uses latest maxDrag
+    function clamp(value) {
+      if (maxDrag <= 0) return 0
+      return Math.min(Math.max(value, 0), maxDrag)
+    }
+
+    function update() {
+      // move the whole list
+      gsap.set(slider, { x: -dragX })
+
+      // update each slide's overlap transform
+      slides.forEach((slide, i) => {
+        const threshold = i * spacing
+        const local = Math.max(0, dragX - threshold)
+        const t = spacing > 0 ? Math.min(local / spacing, 1) : 0
+
+        gsap.set(slide, {
+          x: local,
+          scale: 1 - (1 - minScale) * t,
+          rotation: maxRotation * t,
+          transformOrigin: '75% center',
+        })
+      })
+    }
+
+    function recalc() {
+      if (!slides.length) return
+
+      // measure one slide to get width + margin-right as "gap"
+      const style = getComputedStyle(slides[0])
+      const gapRight = parseFloat(style.marginRight) || 0
+
+      slideW = slides[0].offsetWidth
+      spacing = slideW + gapRight
+      maxDrag = spacing * (slides.length - 1)
+
+      // keep dragX within new bounds
+      dragX = clamp(dragX)
+      update()
+
+      if (draggable) {
+        draggable.applyBounds({ minX: -maxDrag, maxX: 0 })
+      }
+    }
+
+    // create draggable
+    draggable = Draggable.create(slider, {
+      type: 'x',
+      bounds: { minX: -maxDrag, maxX: 0 }, // will be updated after recalc
+      inertia,
+      maxDuration: 1,
+      snap: true
+        ? (raw) => {
+            // raw is the x value
+            const d = clamp(-raw)
+            const idx = spacing > 0 ? Math.round(d / spacing) : 0
+            return -idx * spacing
+          }
+        : false,
+      onDrag() {
+        dragX = clamp(-this.x)
+        update()
+      },
+      onThrowUpdate() {
+        dragX = clamp(-this.x)
+        update()
+      },
+    })[0]
+
+    // recalc on resize
+    const ro = new ResizeObserver(() => {
+      recalc()
+    })
+    ro.observe(init)
+
+    // keyboard navigation (arrow left/right)
+    let active = false
+    let currentIndex = 0
+
+    // helper function to switch slides
+    function goToSlide(idx) {
+      idx = Math.max(0, Math.min(idx, slides.length - 1))
+      currentIndex = idx
+
+      const targetX = idx * spacing
+
+      gsap.to(
+        { value: dragX },
+        {
+          value: targetX,
+          duration: 0.35,
+          ease: 'power4.out',
+          onUpdate: function () {
+            dragX = this.targets()[0].value
+            gsap.set(slider, { x: -dragX })
+            update() // animate overlap transforms properly
+          },
+        }
+      )
+
+      wrap.setAttribute('aria-label', `Slide ${idx + 1} of ${slides.length}`)
+    }
+
+    // Observe visibility
+    const io = new IntersectionObserver(
+      (entries) => {
+        active = entries[0].isIntersecting
+      },
+      {
+        threshold: 0.25, // slider must be at least 25% visible
+      }
+    )
+
+    io.observe(init)
+
+    // Aria labels for accessibility
+    wrap.setAttribute('role', 'region')
+    wrap.setAttribute('aria-roledescription', 'carousel')
+    wrap.setAttribute('aria-label', 'Testimonial slider')
+
+    // key listener
+    function onKey(e) {
+      if (!active) return // only respond when slider in view
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goToSlide(currentIndex - 1)
+      }
+
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goToSlide(currentIndex + 1)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+
+    // initial layout
+    recalc()
+  }
+}
+
+const initFaq = () => {
+  document.querySelectorAll('.accordion_wrap').forEach((component, listIndex) => {
+    if (component.dataset.scriptInitialized) return
+    component.dataset.scriptInitialized = 'true'
+
+    const closePrevious = component.getAttribute('data-close-previous') !== 'false'
+    const closeOnSecondClick = component.getAttribute('data-close-on-second-click') !== 'false'
+    const openOnHover = component.getAttribute('data-open-on-hover') === 'true'
+    const openByDefault =
+      component.getAttribute('data-open-by-default') !== null &&
+      !isNaN(+component.getAttribute('data-open-by-default'))
+        ? +component.getAttribute('data-open-by-default')
+        : false
+    const list = component.querySelector('.accordion_list')
+    let previousIndex = null,
+      closeFunctions = []
+
+    function removeCMSList(slot) {
+      const dynList = Array.from(slot.children).find((child) =>
+        child.classList.contains('w-dyn-list')
+      )
+      if (!dynList) return
+      const nestedItems = dynList?.firstElementChild?.children
+      if (!nestedItems) return
+      const staticWrapper = [...slot.children]
+      ;[...nestedItems].forEach(
+        (el) => el.firstElementChild && slot.appendChild(el.firstElementChild)
+      )
+      staticWrapper.forEach((el) => el.remove())
+    }
+    removeCMSList(list)
+
+    component.querySelectorAll('.accordion_component').forEach((card, cardIndex) => {
+      const button = card.querySelector('.accordion_toggle_button')
+      const content = card.querySelector('.accordion_content_wrap')
+      const icon = card.querySelector('.accordion_toggle_icon')
+      const iconSvg = card.querySelector('.accordion_toggle_svg')
+
+      if (!button || !content || !icon) return console.warn('Missing elements:', card)
+
+      button.setAttribute('aria-expanded', 'false')
+      button.setAttribute('id', 'accordion_button_' + listIndex + '_' + cardIndex)
+      content.setAttribute('id', 'accordion_content_' + listIndex + '_' + cardIndex)
+      button.setAttribute('aria-controls', content.id)
+      content.setAttribute('aria-labelledby', button.id)
+      content.style.display = 'none'
+
+      const refresh = () => {
+        tl.invalidate()
+        if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh()
+        lenis?.resize()
+      }
+      const tl = gsap.timeline({
+        paused: true,
+        defaults: { duration: 0.6, ease: easeDefault },
+        onComplete: refresh,
+        onReverseComplete: refresh,
+      })
+      tl.set(content, { display: 'block' })
+      tl.fromTo(content, { height: 0 }, { height: 'auto' })
+      tl.fromTo(iconSvg, { rotate: 0 }, { rotate: -225 }, '<')
+
+      const closeAccordion = () =>
+        card.classList.contains('is-opened') &&
+        (card.classList.remove('is-opened'),
+        tl.reverse(),
+        button.setAttribute('aria-expanded', 'false'))
+      closeFunctions[cardIndex] = closeAccordion
+
+      const openAccordion = (instant = false) => {
+        if (closePrevious && previousIndex !== null && previousIndex !== cardIndex)
+          closeFunctions[previousIndex]?.()
+        previousIndex = cardIndex
+        button.setAttribute('aria-expanded', 'true')
+        card.classList.add('is-opened')
+        instant ? tl.progress(1) : tl.play()
+      }
+      if (openByDefault === cardIndex + 1) openAccordion(true)
+
+      button.addEventListener('click', () =>
+        card.classList.contains('is-opened') && closeOnSecondClick
+          ? (closeAccordion(), (previousIndex = null))
+          : openAccordion()
+      )
+      if (openOnHover) button.addEventListener('mouseenter', () => openAccordion())
+    })
+  })
+}
+
+/**
+ *
+ *
+ * CLUB
+ *
+ *
+ **/
+
+const initClubNetwork = () => {
+  const trigger = document.querySelector('.section_network')
+  if (!trigger) return
+  const mm = gsap.matchMedia()
+  mm.add(MQ.tabletUp, () => {
+    const animateHero = () => {
+      const tl = gsap.timeline({
+        defaults: {
+          // ease: easeDefault,
+          ease: 'power4.out',
+          duration: 1.6,
+        },
+        scrollTrigger: {
+          trigger: trigger,
+          start: 'clamp(top 100%)',
+          end: 'top top',
+          scrub: false,
+        },
+      })
+
+      gsap.set('.network_card_item', {
+        transformOrigin: (i) => (i === 0 ? 'bottom right' : 'bottom left'),
+      })
+
+      tl.from('.network_card_item', {
+        y: '10vh',
+        scale: 0.85,
+        rotate: (i) => (i === 0 ? -15 : 15),
+        duration: 1.2,
+        stagger: 0.1,
+      })
+    }
+
+    animateHero()
+  })
+
+  // // Remove animations on tablet and down
+  // mm.add(MQ.tabletDown, () => {
+  //   gsap.set(heroImg, { clearProps: 'all' })
+  //   ScrollTrigger.refresh()
+  // })
+}
+
+const initClubGallery = () => {
+  const trigger = document.querySelector('.section_gallery')
+  if (!trigger) return
+  const mm = gsap.matchMedia()
+  mm.add(MQ.tabletUp, () => {
+    const animateHero = () => {
+      const tl = gsap.timeline({
+        defaults: {
+          ease: 'none',
+        },
+        scrollTrigger: {
+          trigger: trigger,
+          start: 'clamp(top 100%)',
+          end: 'bottom top',
+          scrub: true,
+        },
+      })
+
+      tl.to('.gallery_component', {
+        x: '-20vw',
+      })
+    }
+
+    animateHero()
   })
 }
 

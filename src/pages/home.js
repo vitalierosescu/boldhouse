@@ -1,13 +1,13 @@
 import { MQ } from '../utils/breakpoints.js'
 import { splitReveal } from '../utils/splitReveal.js'
 
-gsap.registerPlugin(InertiaPlugin, DrawSVGPlugin)
+gsap.registerPlugin(InertiaPlugin)
 
 CustomEase.create('drift', 'M0,0 C0.65,0 0,1.04 1,1')
 
 const initHeroParallax = () => {
   const hero = document.querySelector('[data-hero-target]')
-  const heroImg = document.querySelector('.h-hero_img')
+  const heroImg = document.querySelector('[data-hero-img]')
   if (!hero) return
   const mm = gsap.matchMedia()
   mm.add(MQ.tabletUp, () => {
@@ -46,84 +46,84 @@ const initHeroParallax = () => {
   })
 }
 
-function initHero() {
-  let logoPaths = document.querySelectorAll('.h-hero_logo path')
-  const heroHeading = document.querySelector('[data-hero-heading]')
+// function initHero() {
+//   let logoPaths = document.querySelectorAll('.h-hero_logo path')
+//   const heroHeading = document.querySelector('[data-hero-heading]')
 
-  gsap.set('.h-hero_bg-fade', { opacity: 1 })
-  gsap.set('.rotating-image-trail', { pointerEvents: 'none' })
+//   gsap.set('.h-hero_bg-fade', { opacity: 1 })
+//   gsap.set('.rotating-image-trail', { pointerEvents: 'none' })
 
-  const tl = gsap.timeline({
-    defaults: {
-      ease: 'cubic-bezier(.5,0,.05,1.01)',
-      // ease: 'cubic-bezier(.5,0,.05,1.01)',
-    },
-  })
+//   const tl = gsap.timeline({
+//     defaults: {
+//       ease: 'cubic-bezier(.5,0,.05,1.01)',
+//       // ease: 'cubic-bezier(.5,0,.05,1.01)',
+//     },
+//   })
 
-  tl.fromTo(
-    '.h-hero_bg',
-    { clipPath: 'polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)' },
-    { clipPath: 'polygon(42% 38%, 58% 38%, 58% 62%, 42% 62%)', duration: 0.6, ease: 'power3.out' }
-  )
-    .to('.h-hero_bg', {
-      clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-      duration: 1,
-      ease: 'expo.inOut',
-    })
-    .fromTo('.h-hero_img', { scale: 1 }, { scale: 1.2, duration: 2.5, ease: 'expo.inOut' }, '<')
+//   tl.fromTo(
+//     '.h-hero_bg',
+//     { clipPath: 'polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)' },
+//     { clipPath: 'polygon(42% 38%, 58% 38%, 58% 62%, 42% 62%)', duration: 0.6, ease: 'power3.out' }
+//   )
+//     .to('.h-hero_bg', {
+//       clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+//       duration: 1,
+//       ease: 'expo.inOut',
+//     })
+//     .fromTo('.h-hero_img', { scale: 1 }, { scale: 1.2, duration: 2.5, ease: 'expo.inOut' }, '<')
 
-  tl.fromTo(
-    '.h-hero_mask',
-    { yPercent: -100 },
-    {
-      yPercent: 0,
-      duration: 1.4,
-      onComplete: () => {
-        gsap.set('.rotating-image-trail', { pointerEvents: 'auto' })
-      },
-    },
-    '-=2'
-  )
+//   tl.fromTo(
+//     '.h-hero_mask',
+//     { yPercent: -100 },
+//     {
+//       yPercent: 0,
+//       duration: 1.4,
+//       onComplete: () => {
+//         gsap.set('.rotating-image-trail', { pointerEvents: 'auto' })
+//       },
+//     },
+//     '-=2'
+//   )
 
-  gsap.set('.mega-nav', { yPercent: -100 })
+//   gsap.set('.mega-nav', { yPercent: -100 })
 
-  tl.fromTo(
-    logoPaths,
-    {
-      scale: 0.7,
-      yPercent: 160,
-      rotateZ: 5,
-    },
-    {
-      scale: 1,
-      rotateZ: 0,
-      yPercent: 0,
-      stagger: {
-        amount: 0.1,
-        ease: 'power4.out',
-      },
-      duration: 1.4,
-    },
-    '-=1.6'
-  )
+//   tl.fromTo(
+//     logoPaths,
+//     {
+//       scale: 0.7,
+//       yPercent: 160,
+//       rotateZ: 5,
+//     },
+//     {
+//       scale: 1,
+//       rotateZ: 0,
+//       yPercent: 0,
+//       stagger: {
+//         amount: 0.1,
+//         ease: 'power4.out',
+//       },
+//       duration: 1.4,
+//     },
+//     '-=1.6'
+//   )
 
-  tl.to('.mega-nav', { yPercent: 0, duration: 1.5 }, '<')
-  tl.fromTo(
-    '.section_h-hero .button',
-    { clipPath: 'inset(100% 0% 0% 0%)' },
-    { clipPath: 'inset(0% 0% 0% 0%)', duration: 1 },
-    '-=.6'
-  )
+//   tl.to('.mega-nav', { yPercent: 0, duration: 1.5 }, '<')
+//   tl.fromTo(
+//     '.section_h-hero .button',
+//     { clipPath: 'inset(100% 0% 0% 0%)' },
+//     { clipPath: 'inset(0% 0% 0% 0%)', duration: 1 },
+//     '-=.6'
+//   )
 
-  if (heroHeading) {
-    splitReveal(heroHeading, {
-      delay: 2,
-      duration: 1.2,
-      stagger: 0.12,
-      ease: 'power4.out',
-    })
-  }
-}
+//   if (heroHeading) {
+//     splitReveal(heroHeading, {
+//       delay: 2,
+//       duration: 1.2,
+//       stagger: 0.12,
+//       ease: 'power4.out',
+//     })
+//   }
+// }
 
 function initHeroNew() {
   const logoPaths = document.querySelectorAll('[data-hero-svg] path')
@@ -178,7 +178,7 @@ function initHeroNew() {
     '-=2'
   )
 
-  tl.to('.mega-nav', { yPercent: 0, duration: 1.5 }, '<')
+  tl.to('.mega-nav', { yPercent: 0, duration: 1.5 }, '<+=.5')
 
   if (linkList) {
     const links = Array.from(linkList.querySelectorAll('.h-hero-2_link'))
@@ -214,79 +214,79 @@ function initHeroNew() {
   })
 }
 
-function initMomentumBasedHover() {
-  // If this device can’t hover with a fine pointer, stop here
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    return
-  }
+// function initMomentumBasedHover() {
+//   // If this device can’t hover with a fine pointer, stop here
+//   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+//     return
+//   }
 
-  // Configuration (tweak these for feel)
-  const xyMultiplier = 15 // multiplies pointer velocity for x/y movement
-  const rotationMultiplier = 20 // multiplies normalized torque for rotation speed
-  const inertiaResistance = 500 // higher = stops sooner
+//   // Configuration (tweak these for feel)
+//   const xyMultiplier = 15 // multiplies pointer velocity for x/y movement
+//   const rotationMultiplier = 20 // multiplies normalized torque for rotation speed
+//   const inertiaResistance = 500 // higher = stops sooner
 
-  // Pre-build clamp functions for performance
-  const clampXY = gsap.utils.clamp(-1080, 1080)
-  const clampRot = gsap.utils.clamp(-60, 60)
+//   // Pre-build clamp functions for performance
+//   const clampXY = gsap.utils.clamp(-1080, 1080)
+//   const clampRot = gsap.utils.clamp(-60, 60)
 
-  // Initialize each root container
-  document.querySelectorAll('[data-momentum-hover-init]').forEach((root) => {
-    let prevX = 0,
-      prevY = 0
-    let velX = 0,
-      velY = 0
-    let rafId = null
+//   // Initialize each root container
+//   document.querySelectorAll('[data-momentum-hover-init]').forEach((root) => {
+//     let prevX = 0,
+//       prevY = 0
+//     let velX = 0,
+//       velY = 0
+//     let rafId = null
 
-    // Track pointer velocity (throttled to RAF)
-    root.addEventListener('mousemove', (e) => {
-      if (rafId) return
-      rafId = requestAnimationFrame(() => {
-        velX = e.clientX - prevX
-        velY = e.clientY - prevY
-        prevX = e.clientX
-        prevY = e.clientY
-        rafId = null
-      })
-    })
+//     // Track pointer velocity (throttled to RAF)
+//     root.addEventListener('mousemove', (e) => {
+//       if (rafId) return
+//       rafId = requestAnimationFrame(() => {
+//         velX = e.clientX - prevX
+//         velY = e.clientY - prevY
+//         prevX = e.clientX
+//         prevY = e.clientY
+//         rafId = null
+//       })
+//     })
 
-    // Attach hover inertia to each child element
-    root.querySelectorAll('[data-momentum-hover-element]').forEach((el) => {
-      el.addEventListener('mouseenter', (e) => {
-        const target = el.querySelector('[data-momentum-hover-target]') || el.querySelector('path')
-        if (!target) return
+//     // Attach hover inertia to each child element
+//     root.querySelectorAll('[data-momentum-hover-element]').forEach((el) => {
+//       el.addEventListener('mouseenter', (e) => {
+//         const target = el.querySelector('[data-momentum-hover-target]') || el.querySelector('path')
+//         if (!target) return
 
-        // Compute offset from center to pointer
-        const { left, top, width, height } = target.getBoundingClientRect()
-        const centerX = left + width / 2
-        const centerY = top + height / 2
-        const offsetX = e.clientX - centerX
-        const offsetY = e.clientY - centerY
+//         // Compute offset from center to pointer
+//         const { left, top, width, height } = target.getBoundingClientRect()
+//         const centerX = left + width / 2
+//         const centerY = top + height / 2
+//         const offsetX = e.clientX - centerX
+//         const offsetY = e.clientY - centerY
 
-        // Compute raw torque (px²/frame)
-        const rawTorque = offsetX * velY - offsetY * velX
+//         // Compute raw torque (px²/frame)
+//         const rawTorque = offsetX * velY - offsetY * velX
 
-        // Normalize torque so rotation ∝ pointer speed (deg/sec)
-        const leverDist = Math.hypot(offsetX, offsetY) || 1
-        const angularForce = rawTorque / leverDist
+//         // Normalize torque so rotation ∝ pointer speed (deg/sec)
+//         const leverDist = Math.hypot(offsetX, offsetY) || 1
+//         const angularForce = rawTorque / leverDist
 
-        // Calculate and clamp velocities
-        const velocityX = clampXY(velX * xyMultiplier)
-        const velocityY = clampXY(velY * xyMultiplier)
-        const rotationVelocity = clampRot(angularForce * rotationMultiplier)
+//         // Calculate and clamp velocities
+//         const velocityX = clampXY(velX * xyMultiplier)
+//         const velocityY = clampXY(velY * xyMultiplier)
+//         const rotationVelocity = clampRot(angularForce * rotationMultiplier)
 
-        // Apply GSAP inertia tween
-        gsap.to(target, {
-          inertia: {
-            x: { velocity: velocityX, end: 0 },
-            y: { velocity: velocityY, end: 0 },
-            rotation: { velocity: rotationVelocity, end: 0 },
-            resistance: inertiaResistance,
-          },
-        })
-      })
-    })
-  })
-}
+//         // Apply GSAP inertia tween
+//         gsap.to(target, {
+//           inertia: {
+//             x: { velocity: velocityX, end: 0 },
+//             y: { velocity: velocityY, end: 0 },
+//             rotation: { velocity: rotationVelocity, end: 0 },
+//             resistance: inertiaResistance,
+//           },
+//         })
+//       })
+//     })
+//   })
+// }
 
 function initAcceleratingGlobe() {
   document.querySelectorAll('[data-accelerating-globe]').forEach(function (globe) {
