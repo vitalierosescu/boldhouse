@@ -489,44 +489,6 @@ function initRoomsBackground() {
   })
 }
 
-const initPerks = () => {
-  const target = document.querySelector('.perks_bg')
-  if (!target) return
-  const mm = gsap.matchMedia()
-  mm.add(MQ.tabletUp, () => {
-    const animateHero = () => {
-      const tl = gsap.timeline({
-        defaults: {
-          ease: 'none',
-        },
-        scrollTrigger: {
-          trigger: '.section_perks',
-          start: 'clamp(top 100%)',
-          end: 'bottom top',
-          scrub: true,
-        },
-      })
-
-      tl.fromTo(
-        target,
-        {
-          scale: 0.8,
-        },
-        {
-          scale: 1,
-        }
-      )
-    }
-
-    animateHero()
-  })
-  // Remove animations on tablet and down
-  mm.add(MQ.tabletDown, () => {
-    gsap.set(target, { clearProps: 'all' })
-    ScrollTrigger.refresh()
-  })
-}
-
 function initHeroClipHover() {
   const links = document.querySelectorAll('.h-hero-2_link')
   const clipImages = document.querySelectorAll('.h-hero_clip-img')
@@ -634,7 +596,7 @@ export function initHome() {
   initHeroNew()
   initClippingImageTrail()
   // initMomentumBasedHover()
-  initPerks()
+  // initPerks()
   initAcceleratingGlobe()
   initRoomsBackground()
   initHeroClipHover()

@@ -97,9 +97,8 @@ function initAfterEnterFunctions(next) {
 
   if (has('[data-logo-wall-cycle-init]')) initLogoWallCycle()
   if (has('[data-stacking-cards-init]')) initStackingStickyCardsBounce()
-  initTypoScrollPreview()
+  initPerks()
   initParallax()
-  initPerkTooltips()
   initOverlappingSlider()
   initFaq()
 
@@ -1526,120 +1525,175 @@ function initStackingStickyCardsBounce() {
   }
 }
 
-function initTypoScrollPreview() {
-  var containers = document.querySelectorAll('[data-typo-scroll-init]')
+const initPerks = () => {
+  const containers = document.querySelectorAll('[data-typo-scroll-init]')
   if (!containers.length) return
 
-  var hasInfinite = false
+  const CLIP_HIDDEN = 'inset(1.5em)'
+  const CLIP_SHOWN = 'inset(0em)'
+  const ease = CustomEase.create('perksMedia', '0.16, 1, 0.3, 1')
+  const ATTR = 'data-typo-scroll-item'
 
-  containers.forEach(function (container) {
-    var isInfinite = container.getAttribute('data-typo-scroll-infinite') === 'true'
+  const entries = Array.from(containers).flatMap((c) =>
+    Array.from(c.querySelectorAll(`[${ATTR}]`)).map((el) => ({
+      el,
+      heading: el.querySelector('.typo-scroll__h'),
+      tooltip: el.querySelector('.perk_tooltip'),
+      media: el.querySelector('.typo-scroll__media'),
+    }))
+  )
 
-    if (isInfinite) {
-      hasInfinite = true
+  entries.forEach(({ tooltip, media }) => {
+    if (tooltip) gsap.set(tooltip, { autoAlpha: 0, clipPath: CLIP_HIDDEN })
+    if (media) gsap.set(media, { autoAlpha: 0, clipPath: CLIP_HIDDEN })
+  })
 
-      var list = container.querySelector('[data-typo-scroll-list]')
-      if (list) {
-        var clone = list.cloneNode(true)
-        clone.style.overflow = 'hidden'
-        clone.style.height = '100dvh'
-        container.appendChild(clone)
+  const isActive = (entry) => entry.el.getAttribute(ATTR) === 'active'
+
+  const reveal = () => {
+    const anyActive = entries.some(isActive)
+    entries.forEach((entry) => {
+      const active = isActive(entry)
+      const { heading, tooltip, media } = entry
+
+      if (heading) {
+        heading.style.color = !anyActive || active ? 'black' : '#6b6b6b'
+        heading.style.zIndex = active ? '2' : ''
       }
-    }
-  })
-
-  lenis = new Lenis({
-    autoRaf: true,
-    infinite: hasInfinite,
-    syncTouch: hasInfinite,
-  })
-
-  if ('fonts' in document && document.fonts.ready) {
-    document.fonts.ready.then(function () {
-      if (lenis) {
-        lenis.resize()
+      if (tooltip) {
+        gsap.set(tooltip, { autoAlpha: active ? 1 : 0 })
+        gsap.to(tooltip, {
+          clipPath: active ? CLIP_SHOWN : CLIP_HIDDEN,
+          duration: 0.5,
+          ease,
+          overwrite: 'auto',
+        })
+      }
+      if (media) {
+        gsap.set(media, { autoAlpha: active ? 1 : 0 })
+        gsap.to(media, {
+          clipPath: active ? CLIP_SHOWN : CLIP_HIDDEN,
+          duration: 1.2,
+          ease,
+          overwrite: 'auto',
+        })
       }
     })
   }
 
-  var isTouchDevice =
-    'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0
+  // Closest-to-viewport-center tracker: writes data-typo-scroll-item="active" on one item per container.
+  const tracked = Array.from(containers).map((container) => ({
+    container,
+    items: [],
+    centers: [],
+    top: 0,
+    bottom: 0,
+  }))
 
-  if (isTouchDevice) {
-    function updateActiveItems() {
-      var viewportCenterY = window.innerHeight / 2
-
-      containers.forEach(function (container) {
-        var items = container.querySelectorAll('[data-typo-scroll-item]')
-        if (!items.length) return
-
-        var containerRect = container.getBoundingClientRect()
-
-        if (viewportCenterY < containerRect.top || viewportCenterY > containerRect.bottom) {
-          items.forEach(function (item) {
-            item.setAttribute('data-typo-scroll-item', '')
-          })
-          return
-        }
-
-        var closestItem = null
-        var closestDistance = Infinity
-
-        items.forEach(function (item) {
-          var rect = item.getBoundingClientRect()
-          if (rect.bottom < 0 || rect.top > window.innerHeight) return
-
-          var itemCenterY = rect.top + rect.height / 2
-          var distance = Math.abs(viewportCenterY - itemCenterY)
-
-          if (distance < closestDistance) {
-            closestDistance = distance
-            closestItem = item
-          }
-        })
-
-        if (!closestItem) {
-          items.forEach(function (item) {
-            item.setAttribute('data-typo-scroll-item', '')
-          })
-          return
-        }
-
-        items.forEach(function (item) {
-          item.setAttribute('data-typo-scroll-item', item === closestItem ? 'active' : '')
-        })
+  const measure = () => {
+    const scrollY = window.scrollY
+    tracked.forEach((data) => {
+      data.items = Array.from(data.container.querySelectorAll(`[${ATTR}]`))
+      const rect = data.container.getBoundingClientRect()
+      data.top = rect.top + scrollY
+      data.bottom = rect.bottom + scrollY
+      data.centers = data.items.map((item) => {
+        const r = item.getBoundingClientRect()
+        return r.top + scrollY + r.height / 2
       })
+    })
+  }
 
-      requestAnimationFrame(updateActiveItems)
-    }
+  const setActive = (item, value) => {
+    if (item.getAttribute(ATTR) === value) return false
+    item.setAttribute(ATTR, value)
+    return true
+  }
 
-    requestAnimationFrame(updateActiveItems)
-  } else {
-    containers.forEach(function (container) {
-      var items = container.querySelectorAll('[data-typo-scroll-item]')
-      if (!items.length) return
+  const update = () => {
+    const center = window.scrollY + window.innerHeight / 2
+    let changed = false
 
-      function setActive(target) {
-        items.forEach(function (item) {
-          item.setAttribute('data-typo-scroll-item', item === target ? 'active' : '')
+    tracked.forEach((data) => {
+      if (!data.items.length) return
+
+      const inView = center >= data.top && center <= data.bottom
+      if (!inView) {
+        data.items.forEach((item) => {
+          if (setActive(item, '')) changed = true
         })
+        return
       }
 
-      function clearActive() {
-        items.forEach(function (item) {
-          item.setAttribute('data-typo-scroll-item', '')
-        })
-      }
-
-      items.forEach(function (item) {
-        item.addEventListener('mouseenter', function () {
-          setActive(item)
-        })
+      let closestIndex = 0
+      let closestDistance = Infinity
+      data.centers.forEach((c, i) => {
+        const d = Math.abs(center - c)
+        if (d < closestDistance) {
+          closestDistance = d
+          closestIndex = i
+        }
       })
 
-      container.addEventListener('mouseleave', function () {
-        clearActive()
+      data.items.forEach((item, i) => {
+        if (setActive(item, i === closestIndex ? 'active' : '')) changed = true
       })
+    })
+
+    if (changed) reveal()
+  }
+
+  let queued = false
+  const schedule = () => {
+    if (queued) return
+    queued = true
+    requestAnimationFrame(() => {
+      queued = false
+      update()
+    })
+  }
+
+  measure()
+  update()
+
+  window.addEventListener('scroll', schedule, { passive: true })
+  window.addEventListener('resize', () => {
+    measure()
+    schedule()
+  })
+
+  const bg = document.querySelector('.perks_bg')
+  if (bg) {
+    const mm = gsap.matchMedia()
+    mm.add(MQ.tabletUp, () => {
+      gsap.fromTo(
+        bg,
+        { scale: 0.8 },
+        {
+          scale: 1,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: '.section_perks',
+            start: 'clamp(top 100%)',
+            end: 'bottom top',
+            scrub: true,
+          },
+        }
+      )
+    })
+    mm.add(MQ.tabletDown, () => {
+      gsap.set(bg, { clearProps: 'all' })
+      ScrollTrigger.refresh()
+    })
+  }
+
+  lenis = new Lenis({ autoRaf: true })
+
+  if ('fonts' in document) {
+    document.fonts.ready.then(() => {
+      lenis?.resize()
+      measure()
+      schedule()
     })
   }
 }
@@ -1701,100 +1755,6 @@ function initTextAnimations() {
         },
       })
     }
-  })
-}
-
-function initPerkTooltips() {
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
-
-  const items = document.querySelectorAll('.typo-scroll__item')
-  if (!items.length) return
-
-  const OFFSET_X = 16
-  const OFFSET_Y = 16
-
-  items.forEach((item) => {
-    const tooltip = item.querySelector('.perk_tooltip')
-    const tooltipBg = item.querySelector('.perk_tooltip_bg')
-    const tooltipText = item.querySelector('.perk_tooltip_p')
-    if (!tooltip || !tooltipBg || !tooltipText) return
-
-    gsap.set(tooltip, {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      pointerEvents: 'none',
-      autoAlpha: 0,
-      x: -9999,
-      y: -9999,
-    })
-    gsap.set(tooltipBg, { clipPath: 'inset(0 100% 0 0)' })
-
-    let chars = []
-    SplitText.create(tooltipText, {
-      type: 'lines, words, chars',
-      mask: 'lines',
-      linesClass: 'line',
-      autoSplit: true,
-      onSplit(self) {
-        chars = self.chars
-        gsap.set(chars, { yPercent: 110 })
-      },
-    })
-
-    const xTo = gsap.quickTo(tooltip, 'x', { duration: 0.4, ease: 'power3.out' })
-    const yTo = gsap.quickTo(tooltip, 'y', { duration: 0.4, ease: 'power3.out' })
-
-    let active = false
-
-    item.addEventListener('mouseenter', () => {
-      active = true
-      gsap.killTweensOf([tooltip, tooltipBg, chars])
-      gsap.to(tooltip, { autoAlpha: 1, duration: 0.15, overwrite: 'auto' })
-      gsap.to(tooltipBg, {
-        clipPath: 'inset(0 0% 0 0)',
-        duration: 0.6,
-        ease: 'expo.out',
-        overwrite: 'auto',
-      })
-      gsap.fromTo(
-        chars,
-        { yPercent: 110 },
-        {
-          yPercent: 0,
-          duration: 0.5,
-          stagger: 0.012,
-          ease: 'expo.out',
-          delay: 0.1,
-          overwrite: 'auto',
-        }
-      )
-    })
-
-    item.addEventListener('mouseleave', () => {
-      active = false
-      gsap.killTweensOf([tooltip, tooltipBg, chars])
-      gsap.to(tooltipBg, {
-        clipPath: 'inset(0 100% 0 0)',
-        duration: 0.4,
-        ease: 'expo.in',
-        overwrite: 'auto',
-      })
-      gsap.to(chars, {
-        yPercent: 110,
-        duration: 0.3,
-        stagger: 0.005,
-        ease: 'expo.in',
-        overwrite: 'auto',
-      })
-      gsap.to(tooltip, { autoAlpha: 0, duration: 0.2, delay: 0.25, overwrite: 'auto' })
-    })
-
-    item.addEventListener('mousemove', (e) => {
-      if (!active) return
-      xTo(e.clientX + OFFSET_X)
-      yTo(e.clientY + OFFSET_Y)
-    })
   })
 }
 
