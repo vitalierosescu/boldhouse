@@ -3,9 +3,9 @@
 gsap.registerPlugin(ScrollTrigger, Draggable, CustomEase, DrawSVGPlugin, SplitText, InertiaPlugin)
 
 let lenis
-let staggerDefault = 0.075
-let durationDefault = 1
-let transitionOffset = 800 /* ms */
+const staggerDefault = 0.075
+const durationDefault = 1
+const transitionOffset = 800 /* ms */
 
 const navBarOffset = $('.nav-bar').innerHeight()
 const scribbleWidth = '31%'
@@ -31,7 +31,7 @@ initPageTransitions()
 
 // Animation - Page Loader Short
 function initLoaderShort() {
-  var tl = gsap.timeline()
+  const tl = gsap.timeline()
 
   tl.set($('.transition-container'), {
     pointerEvents: 'none',
@@ -81,7 +81,7 @@ function initLoaderShort() {
 
 // Animation - Page Loader
 function initLoader() {
-  var tl = gsap.timeline()
+  const tl = gsap.timeline()
 
   tl.set($('main'), {
     overflow: 'clip',
@@ -166,7 +166,7 @@ function initLoader() {
 
 // Animation - Page Leave
 function pageTransitionIn() {
-  var tl = gsap.timeline()
+  const tl = gsap.timeline()
 
   if (document.querySelector('.lorem-ipsum')) {
   }
@@ -249,7 +249,7 @@ function pageTransitionIn() {
 
 // Animation - Page Enter
 function pageTransitionOut() {
-  var tl = gsap.timeline()
+  const tl = gsap.timeline()
 
   if (document.querySelector('[data-split-words]')) {
     tl.from(
@@ -560,9 +560,9 @@ function initScript() {
  * Reset Webflow
  */
 function initResetWebflow(data) {
-  let parser = new DOMParser()
-  let dom = parser.parseFromString(data.next.html, 'text/html')
-  let webflowPageId = dom.querySelector('html').getAttribute('data-wf-page')
+  const parser = new DOMParser()
+  const dom = parser.parseFromString(data.next.html, 'text/html')
+  const webflowPageId = dom.querySelector('html').getAttribute('data-wf-page')
   document.documentElement.setAttribute('data-wf-page', webflowPageId)
   window.Webflow.destroy()
   window.Webflow.ready()
@@ -588,7 +588,7 @@ function initBarbaNavUpdate(data) {
  */
 function initCheckWindowHeight() {
   // https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
-  let vh = window.innerHeight * 0.01
+  const vh = window.innerHeight * 0.01
   document.documentElement.style.setProperty('--vh-in-px', `${vh}px`)
 }
 
@@ -719,12 +719,12 @@ function initBasicFunctions() {
  */
 
 function initLenisCheckScrollUpDown() {
-  var lastScrollTop = 0
-  var threshold = 200
-  var thresholdTop = 50
+  let lastScrollTop = 0
+  const threshold = 200
+  const thresholdTop = 50
 
-  var scrollHandler = function (e) {
-    var nowScrollTop = e.targetScroll
+  const scrollHandler = function (e) {
+    const nowScrollTop = e.targetScroll
 
     if (Math.abs(lastScrollTop - nowScrollTop) >= threshold) {
       // Check Scroll Direction
@@ -772,7 +772,7 @@ function initLenisCheckScrollUpDown() {
  */
 function initScrollToAnchorLenis() {
   $('[data-anchor-target]').click(function () {
-    let targetScrollToAnchorLenis = $(this).attr('data-anchor-target')
+    const targetScrollToAnchorLenis = $(this).attr('data-anchor-target')
     lenis.scrollTo(targetScrollToAnchorLenis, {
       easing: (x) => (x < 0.5 ? 8 * x * x * x * x : 1 - Math.pow(-2 * x + 2, 4) / 2),
       duration: 1,
@@ -785,22 +785,22 @@ function initScrollToAnchorLenis() {
  */
 function initCheckTheme() {
   function checkThemeSection() {
-    var themeSections = document.querySelectorAll('[data-theme-section]')
-    var themeObserverOffset = $('.nav-bar').innerHeight() / 2
+    const themeSections = document.querySelectorAll('[data-theme-section]')
+    const themeObserverOffset = $('.nav-bar').innerHeight() / 2
 
     themeSections.forEach(function (themeSection) {
-      var themeSectionTop = themeSection.getBoundingClientRect().top
-      var themeSectionBottom = themeSection.getBoundingClientRect().bottom
+      const themeSectionTop = themeSection.getBoundingClientRect().top
+      const themeSectionBottom = themeSection.getBoundingClientRect().bottom
 
       if (themeSectionTop <= themeObserverOffset && themeSectionBottom >= themeObserverOffset) {
         // Check [data-theme-section]
-        var themeSectionActive = $(themeSection).attr('data-theme-section')
+        const themeSectionActive = $(themeSection).attr('data-theme-section')
         if ($('[data-theme-nav]').attr('data-theme-nav') !== themeSectionActive) {
           $('[data-theme-nav]').attr('data-theme-nav', themeSectionActive)
         }
 
         // Check [data-bg-section]
-        var bgSectionActive = $(themeSection).attr('data-bg-section')
+        const bgSectionActive = $(themeSection).attr('data-bg-section')
         if ($('[data-bg-nav]').attr('data-bg-nav') !== bgSectionActive) {
           $('[data-bg-nav]').attr('data-bg-nav', bgSectionActive)
         }
@@ -1382,10 +1382,10 @@ function initMWG11() {
 
   document.fonts.ready.then(function () {
     $('.horizontal-words').each(function () {
-      var $container = $(this)
+      const $container = $(this)
 
       // split the heading into characters
-      var $h2 = $container.find('.horizontal-words__h2')
+      const $h2 = $container.find('.horizontal-words__h2')
       if ($h2.length) {
         SplitText.create($h2[0], {
           type: 'chars',
@@ -1393,10 +1393,10 @@ function initMWG11() {
         })
       }
 
-      var $text = $container.find('.horizontal-words__relative')
-      var $letters = $container.find('.letter')
-      var $stickers = $container.find('.horizontal-words__sticker-svg')
-      var $arrow = $container.find(
+      const $text = $container.find('.horizontal-words__relative')
+      const $letters = $container.find('.letter')
+      const $stickers = $container.find('.horizontal-words__sticker-svg')
+      const $arrow = $container.find(
         '.horizontal-words__arrow-svg path, .horizontal-words__arrow-end-svg path'
       )
 
@@ -1409,11 +1409,11 @@ function initMWG11() {
       }
 
       // calculate how far the text needs to move (fallback to 0 if undefined)
-      var textWidth = $text[0].clientWidth || 0
-      var bodyWidth = document.body.clientWidth || 0
-      var distance = textWidth - bodyWidth
+      const textWidth = $text[0].clientWidth || 0
+      const bodyWidth = document.body.clientWidth || 0
+      const distance = textWidth - bodyWidth
 
-      var scrollTween = gsap.fromTo(
+      const scrollTween = gsap.fromTo(
         $text,
         {
           xPercent: 50,
@@ -1602,7 +1602,7 @@ function initMarqueeScrollDirection() {
     const scrollSpeedAttr = parseFloat(scrollSpeed)
     const speedMultiplier = window.innerWidth < 479 ? 0.25 : window.innerWidth < 991 ? 0.5 : 1
 
-    let marqueeSpeed =
+    const marqueeSpeed =
       marqueeSpeedAttr * (marqueeContent.offsetWidth / window.innerWidth) * speedMultiplier
 
     // Precompute styles for the scroll container
@@ -2483,10 +2483,10 @@ function initDisplayCount() {
  */
 function initScrolltriggerAnimations() {
   $('[data-scroll-animation="draw"]').each(function () {
-    let triggerElement = $(this)
-    let targetElement = $(this).find('path')
+    const triggerElement = $(this)
+    const targetElement = $(this).find('path')
 
-    let tl = gsap.timeline({
+    const tl = gsap.timeline({
       scrollTrigger: {
         trigger: triggerElement,
         start: '0% 100%',
@@ -2510,10 +2510,10 @@ function initScrolltriggerAnimations() {
   })
 
   $('[data-scroll-animation="draw-stagger"]').each(function () {
-    let triggerElement = $(this)
-    let targetElement = $(this).find('path')
+    const triggerElement = $(this)
+    const targetElement = $(this).find('path')
 
-    let tl = gsap.timeline({
+    const tl = gsap.timeline({
       scrollTrigger: {
         trigger: triggerElement,
         start: '0% 100%',
@@ -2538,10 +2538,10 @@ function initScrolltriggerAnimations() {
   })
 
   $('[data-scroll-animation="sticker"]').each(function () {
-    let triggerElement = $(this)
-    let targetElement = $(this)
+    const triggerElement = $(this)
+    const targetElement = $(this)
 
-    let tl = gsap.timeline({
+    const tl = gsap.timeline({
       scrollTrigger: {
         trigger: triggerElement,
         start: '0% 100%',
@@ -2562,11 +2562,11 @@ function initScrolltriggerAnimations() {
   })
 
   $('[data-scroll-animation="sticker-draw"]').each(function () {
-    let triggerElement = $(this)
-    let targetElement = $(this).find('[data-scroll-animation-target="draw"]').find('path')
-    let targetElementSticker = $(this).find('[data-scroll-animation-target="sticker"]')
+    const triggerElement = $(this)
+    const targetElement = $(this).find('[data-scroll-animation-target="draw"]').find('path')
+    const targetElementSticker = $(this).find('[data-scroll-animation-target="sticker"]')
 
-    let tl = gsap.timeline({
+    const tl = gsap.timeline({
       scrollTrigger: {
         trigger: triggerElement,
         start: '25% 100%',
@@ -2601,11 +2601,11 @@ function initScrolltriggerAnimations() {
   })
 
   $('[data-scroll-animation="draw-sticker"]').each(function () {
-    let triggerElement = $(this)
-    let targetElement = $(this).find('[data-scroll-animation-target="draw"]').find('path')
-    let targetElementSticker = $(this).find('[data-scroll-animation-target="sticker"]')
+    const triggerElement = $(this)
+    const targetElement = $(this).find('[data-scroll-animation-target="draw"]').find('path')
+    const targetElementSticker = $(this).find('[data-scroll-animation-target="sticker"]')
 
-    let tl = gsap.timeline({
+    const tl = gsap.timeline({
       scrollTrigger: {
         trigger: triggerElement,
         start: '25% 100%',
@@ -2643,10 +2643,10 @@ function initScrolltriggerAnimations() {
   })
 
   $('[data-scroll-animation="stickers"]').each(function () {
-    let triggerElement = $(this)
-    let targetElement = $(this).find('[data-scroll-animation-target]')
+    const triggerElement = $(this)
+    const targetElement = $(this).find('[data-scroll-animation-target]')
 
-    let tl = gsap.timeline({
+    const tl = gsap.timeline({
       scrollTrigger: {
         trigger: triggerElement,
         start: '0% 100%',

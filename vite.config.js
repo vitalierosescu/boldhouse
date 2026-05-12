@@ -38,7 +38,7 @@ export default defineConfig(({ command }) => {
             gsap: 'gsap',
           },
         },
-        external: ['jquery', 'gsap'],
+        external: ['jquery', 'gsap', 'barba', 'lenis'],
       },
     },
   }
