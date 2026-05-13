@@ -10,8 +10,18 @@ if (!window.gsap) window.gsap = gsap
 // Register on BOTH instances. In production they're the same (gsap is externalized
 // to window.gsap). In dev, the bundled npm `gsap` and the CDN `window.gsap` are
 // separate instances - skipping the bundled one causes "Missing plugin?" warnings.
-gsap.registerPlugin(ScrollTrigger, CustomEase, SplitText, Draggable, InertiaPlugin)
-window.gsap.registerPlugin(ScrollTrigger, CustomEase, SplitText, Draggable, InertiaPlugin)
+// Use window.* for all CDN globals — property access returns undefined (no throw),
+// bare variable references throw ReferenceError if the deferred script hasn't run yet.
+const _plugins = [
+  window.ScrollTrigger,
+  window.CustomEase,
+  window.SplitText,
+  window.Draggable,
+  window.InertiaPlugin,
+  window.Observer,
+].filter(Boolean)
+gsap.registerPlugin(..._plugins)
+window.gsap.registerPlugin(..._plugins)
 
 // -----------------------------------------
 // OSMO PAGE TRANSITION BOILERPLATE
@@ -20,7 +30,7 @@ window.gsap.registerPlugin(ScrollTrigger, CustomEase, SplitText, Draggable, Iner
 history.scrollRestoration = 'manual'
 
 let nextPage = document
-let onceFunctionsInitialized = false
+let isOnceFunctionsInitialized = false
 
 const hasLenis = typeof window.Lenis !== 'undefined'
 const hasScrollTrigger = typeof window.ScrollTrigger !== 'undefined'
@@ -38,20 +48,36 @@ const easeDefault = 'boldhouse'
 CustomEase.create('boldhouse', '.5,0,.05,1.01')
 gsap.defaults({ ease: easeDefault, duration: durationDefault })
 
+const initialPageFade = () => {
+  const elements = document.querySelectorAll('[data-start="hidden"]')
+
+  if (reducedMotion || isOnceFunctionsInitialized) {
+    gsap.set(elements, { autoAlpha: 1 })
+    return
+  }
+
+  gsap.fromTo(elements, { autoAlpha: 0 }, { autoAlpha: 1 })
+}
+
 // -----------------------------------------
 // FUNCTION REGISTRY
 // -----------------------------------------
 
 function initOnceFunctions() {
   initLenis()
-  if (onceFunctionsInitialized) return
-  onceFunctionsInitialized = true
+  if (isOnceFunctionsInitialized) return
+  isOnceFunctionsInitialized = true
+
+  //
+  initButtonHover()
+  if (document.querySelector('[data-barba-namespace="home"]')) initHomeHero()
 }
 
 function initBeforeEnterFunctions(next) {
   nextPage = next || document
 
   initHero(nextPage)
+  initialPageFade(nextPage)
 }
 
 function initAfterEnterFunctions(next) {
@@ -65,6 +91,9 @@ function initAfterEnterFunctions(next) {
   else if (ns === 'club') {
     console.log('club page')
     initClubPage(nextPage)
+  } else if (ns === 'spaces') {
+    console.log('spaces page')
+    initSpacesPage(nextPage)
   }
 
   if (hasLenis) window.lenis?.resize()
@@ -86,21 +115,31 @@ function runPageOnceAnimation(next) {
     0
   )
 
-  return new Promise((resolve) => {
-    tl.call(resolve)
-  })
+  return tl
 }
 
-function runPageLeaveAnimation(current) {
-  const tl = gsap.timeline({ onComplete: () => current.remove() })
+function runPageLeaveAnimation(current, next) {
+  const tl = gsap.timeline({
+    onComplete: () => {
+      current.remove()
+    },
+  })
 
   if (reducedMotion) {
-    return new Promise((resolve) => tl.set(current, { autoAlpha: 0 }).call(resolve))
+    return tl.set(current, { autoAlpha: 0 })
   }
 
-  return new Promise((resolve) => {
-    tl.to(current, { autoAlpha: 0, duration: 0.35, ease: 'power2.inOut' }).call(resolve)
-  })
+  tl.to(
+    current,
+    {
+      autoAlpha: 0,
+      ease: 'power1.in',
+      duration: 0.3,
+    },
+    0
+  )
+
+  return tl
 }
 
 function runPageEnterAnimation(next) {
@@ -113,7 +152,21 @@ function runPageEnterAnimation(next) {
     return new Promise((resolve) => tl.call(resolve, null, 'pageReady'))
   }
 
-  tl.from(next, { autoAlpha: 0, duration: 0.35, ease: 'power2.inOut' })
+  tl.add('startEnter', 0)
+
+  tl.fromTo(
+    next,
+    {
+      autoAlpha: 0,
+    },
+    {
+      autoAlpha: 1,
+      ease: 'power1.inOut',
+      duration: 0.4,
+    },
+    'startEnter'
+  )
+
   tl.add('pageReady')
   tl.call(resetPage, [next], 'pageReady')
 
@@ -139,6 +192,7 @@ barba.hooks.afterLeave(() => {
   if (hasScrollTrigger) {
     ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
   }
+  runPageCleanups()
 })
 
 barba.hooks.enter((data) => {
@@ -194,11 +248,11 @@ barba.init({
 
 const themeConfig = {
   light: {
-    nav: 'dark',
+    nav: 'light',
     transition: 'light',
   },
   dark: {
-    nav: 'light',
+    nav: 'dark',
     transition: 'dark',
   },
 }
@@ -215,8 +269,35 @@ function applyThemeFrom(container) {
 
   const nav = document.querySelector('[data-theme-nav]')
   if (nav) {
-    nav.dataset.themeNav = config.nav
+    // Optional per-page override, e.g. homepage starts with dark nav over the hero.
+    const navStart = container?.dataset?.navStart
+    nav.dataset.themeNav = navStart || config.nav
   }
+}
+
+function initNavThemeTriggers(container = document) {
+  if (!hasScrollTrigger) return
+
+  const nav = document.querySelector('[data-theme-nav]')
+  if (!nav) return
+
+  const initialTheme = nav.dataset.themeNav
+
+  container.querySelectorAll('[data-nav-theme-to]').forEach((section) => {
+    const targetTheme = section.dataset.navThemeTo
+    if (!targetTheme) return
+
+    ScrollTrigger.create({
+      trigger: section,
+      start: 'bottom top',
+      onEnter: () => {
+        nav.dataset.themeNav = targetTheme
+      },
+      onLeaveBack: () => {
+        nav.dataset.themeNav = initialTheme
+      },
+    })
+  })
 }
 
 function initLenis() {
@@ -224,8 +305,8 @@ function initLenis() {
   if (!hasLenis) return
 
   window.lenis = new Lenis({
-    // lerp: 0.165,
-    wheelMultiplier: 0.5,
+    lerp: 0.15,
+    wheelMultiplier: 1.25,
   })
 
   if (hasScrollTrigger) {
@@ -235,8 +316,37 @@ function initLenis() {
   gsap.ticker.add((time) => {
     window.lenis.raf(time * 1000)
   })
+}
 
-  gsap.ticker.lagSmoothing(0)
+// Pause animation work while the tab is hidden. Browsers throttle RAF to ~1fps
+// in background tabs; without this, GSAP/Lenis try to "catch up" the accumulated
+// delta in a single frame burst on return, causing laggy scroll.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    window.lenis?.stop()
+    gsap.ticker.sleep()
+  } else {
+    gsap.ticker.wake()
+    window.lenis?.start()
+    if (hasScrollTrigger) ScrollTrigger.refresh()
+  }
+})
+
+// Per-page cleanup registry. Inits that attach window-level listeners or
+// observers push a teardown fn here; barba.afterLeave drains it.
+const pageCleanups = []
+function registerCleanup(fn) {
+  pageCleanups.push(fn)
+}
+function runPageCleanups() {
+  while (pageCleanups.length) {
+    const fn = pageCleanups.pop()
+    try {
+      fn()
+    } catch (e) {
+      console.warn('pageCleanup error', e)
+    }
+  }
 }
 
 function resetPage(container) {
@@ -287,16 +397,16 @@ function initBarbaNavUpdate(data) {
   })
 }
 
-// =====================================================
-// SHARED FEATURE MODULES (was global.js)
-// =====================================================
-
-let PARALLAX_MM
-
+//  SHARED FEATURE MODULES (was global.js)
+// ------
+// ----------
 const initForm = (container = document) => {
   if (!container.querySelector('.form_input')) return
 
   container.querySelectorAll('.form_input').forEach((field) => {
+    if (field._formInit) return
+    field._formInit = true
+
     const label = field.closest('.form-field-group')?.querySelector('.form_label')
     const isTextarea = field.closest('.form-field-group')?.querySelector('.form_input.is-text-area')
 
@@ -472,6 +582,9 @@ function initButtonHover(container = document) {
   const buttons = container.querySelectorAll('[data-button-text]')
 
   buttons.forEach((button) => {
+    if (button._buttonHoverInit) return
+    button._buttonHoverInit = true
+
     const text = button.textContent // Get the button's text content
     button.innerHTML = '' // Clear the original content
     ;[...text].forEach((char, index) => {
@@ -490,6 +603,13 @@ function initButtonHover(container = document) {
 }
 
 function initMegaNavDirectionalHover() {
+  // Nav lives outside the Barba container, so this function is called on every
+  // page transition with the same DOM. Bail if we've already bound listeners
+  // to avoid stacking duplicate handlers on each enter/leave.
+  const menuWrap = document.querySelector('[data-menu-wrap]')
+  if (!menuWrap || menuWrap._megaNavInit) return
+  menuWrap._megaNavInit = true
+
   const DUR = {
     bgMorph: 0.4,
     contentIn: 0.3,
@@ -505,7 +625,6 @@ function initMegaNavDirectionalHover() {
   const HOVER_LEAVE = 150
 
   // DOM references
-  const menuWrap = document.querySelector('[data-menu-wrap]')
   const navList = document.querySelector('[data-nav-list]')
   const dropWrapper = document.querySelector('[data-dropdown-wrapper]')
   const dropContainer = document.querySelector('[data-dropdown-container]')
@@ -1448,53 +1567,39 @@ const initPerks = (container = document) => {
     })
   }
 
-  window.lenis = new Lenis({ autoRaf: true })
-
   if ('fonts' in document) {
     document.fonts.ready.then(() => {
       window.lenis?.resize()
       scheduleMeasureUpdate()
     })
   }
-}
 
-const buildParallax = (container = document) => {
-  if (!container.querySelector('[data-parallax]')) return
-
-  PARALLAX_MM.add('(min-width: 992px)', () => {
-    container.querySelectorAll('[data-parallax]').forEach((parallaxParent) => {
-      const parallaxImg = parallaxParent.querySelector('.parallax')
-      if (!parallaxImg) return
-
-      gsap
-        .timeline({
-          defaults: { ease: 'none' },
-          scrollTrigger: {
-            trigger: parallaxParent,
-            start: 'clamp(top bottom)',
-            end: 'bottom top',
-            scrub: true,
-            invalidateOnRefresh: true,
-          },
-        })
-        .to(parallaxImg, { yPercent: 18 })
-    })
-  })
-
-  PARALLAX_MM.add('(max-width: 991px)', () => {
-    container.querySelectorAll('[data-parallax]').forEach((parallaxParent) => {
-      const parallaxImg = parallaxParent.querySelector('.parallax')
-      if (parallaxImg) gsap.set(parallaxImg, { clearProps: 'all' })
-    })
+  registerCleanup(() => {
+    window.removeEventListener('scroll', schedule)
+    window.removeEventListener('resize', scheduleMeasureUpdate)
   })
 }
 
 const initParallax = (container = document) => {
-  if (PARALLAX_MM) PARALLAX_MM.revert() // clean up ONLY previous parallax setup
-  PARALLAX_MM = gsap.matchMedia()
-  buildParallax(container)
-  // defer to next frame so layout/inputs settle first
-  requestAnimationFrame(() => ScrollTrigger.refresh())
+  if (!container.querySelector('[data-parallax]')) return
+
+  container.querySelectorAll('[data-parallax]').forEach((parallaxParent) => {
+    const parallaxImg = parallaxParent.querySelector('.parallax')
+    if (!parallaxImg) return
+
+    gsap
+      .timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger: parallaxParent,
+          start: 'clamp(top bottom)',
+          end: 'bottom top',
+          scrub: true,
+          invalidateOnRefresh: true,
+        },
+      })
+      .to(parallaxImg, { yPercent: 9 })
+  })
 }
 
 function initTextAnimations(container = document) {
@@ -1536,6 +1641,13 @@ function initOverlappingSlider(container = document) {
     wrap.style.touchAction = 'none'
     wrap.style.userSelect = 'none'
 
+    // transform-origin never changes per frame; set once.
+    gsap.set(slides, { transformOrigin: '75% center' })
+
+    // quickSetter bypasses the tween pipeline — much cheaper than gsap.set
+    // when called every frame during drag.
+    const setSliderX = gsap.quickSetter(slider, 'x', 'px')
+
     let spacing = 0
     let slideW = 0
     let maxDrag = 0
@@ -1550,10 +1662,8 @@ function initOverlappingSlider(container = document) {
     }
 
     function update() {
-      // move the whole list
-      gsap.set(slider, { x: -dragX })
+      setSliderX(-dragX)
 
-      // update each slide's overlap transform
       slides.forEach((slide, i) => {
         const threshold = i * spacing
         const local = Math.max(0, dragX - threshold)
@@ -1563,7 +1673,6 @@ function initOverlappingSlider(container = document) {
           x: local,
           scale: 1 - (1 - minScale) * t,
           rotation: maxRotation * t,
-          transformOrigin: '75% center',
         })
       })
     }
@@ -1637,8 +1746,7 @@ function initOverlappingSlider(container = document) {
           ease: 'power4.out',
           onUpdate: function () {
             dragX = this.targets()[0].value
-            gsap.set(slider, { x: -dragX })
-            update() // animate overlap transforms properly
+            update() // moves slider + transforms slides via quickSetters
           },
         }
       )
@@ -1681,6 +1789,13 @@ function initOverlappingSlider(container = document) {
 
     // initial layout
     recalc()
+
+    registerCleanup(() => {
+      window.removeEventListener('keydown', onKey)
+      ro.disconnect()
+      io.disconnect()
+      draggable?.kill()
+    })
   }
 }
 
@@ -1773,8 +1888,7 @@ const initFaq = (container = document) => {
   })
 }
 
-// Footer Easter Egg
-function initMomentumBasedHover(container = document) {
+const initMomentumBasedHover = (container = document) => {
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     return
   }
@@ -1785,6 +1899,9 @@ function initMomentumBasedHover(container = document) {
   const clampRot = gsap.utils.clamp(-60, 60)
 
   container.querySelectorAll('[data-momentum-hover-init]').forEach((root) => {
+    if (root._momentumHoverInit) return
+    root._momentumHoverInit = true
+
     let prevX = 0,
       prevY = 0
     let velX = 0,
@@ -1868,6 +1985,7 @@ function initGlobal(container) {
   initOverlappingSlider(container)
   initFaq(container)
   initMomentumBasedHover(container)
+  if (has('[data-nav-theme-to]')) initNavThemeTriggers(container)
   document.fonts.ready.then(() => initTextAnimations(container))
 }
 
@@ -1875,14 +1993,13 @@ function initGlobal(container) {
 // HOME JS
 // =====================================================
 
-gsap.registerPlugin(InertiaPlugin)
-
 CustomEase.create('drift', 'M0,0 C0.65,0 0,1.04 1,1')
 
 const initHomeHeroParallax = (container = document) => {
   const hero = container.querySelector('[data-hero-target]')
   const heroImg = container.querySelector('[data-hero-img]')
   if (!hero) return
+
   const mm = gsap.matchMedia()
   mm.add(MQ.tabletUp, () => {
     const animateHero = () => {
@@ -1901,14 +2018,14 @@ const initHomeHeroParallax = (container = document) => {
       tl.to(
         heroImg,
         {
-          y: '10vh',
-          filter: 'brightness(30%)',
+          y: '20vh',
+          // filter: 'brightness(80%)',
           ease: 'none',
         },
         0
       )
 
-      gsap.set(heroImg, { filter: 'brightness(100%)' })
+      // gsap.set(heroImg, { filter: 'brightness(100%)' })
     }
 
     animateHero()
@@ -1920,11 +2037,15 @@ const initHomeHeroParallax = (container = document) => {
   })
 }
 
-function initHeroNew(container = document) {
+function initHomeHero(container = document) {
   const logoPaths = container.querySelectorAll('[data-hero-svg] path')
 
   const heroHeadings = container.querySelectorAll('[data-hero-heading]')
   const linkList = container.querySelector('.h-hero-2_link-list')
+
+  const nav = container.querySelectorAll(
+    '.mega-nav__bar-logo, .mega-nav__bar-action, .mega-nav__bar-list'
+  )
 
   CustomEase.create('nav', '.5,0,.05,1.01')
 
@@ -1936,7 +2057,7 @@ function initHeroNew(container = document) {
     },
   })
 
-  gsap.set('.mega-nav', { yPercent: -100 })
+  gsap.set(nav, { yPercent: -100 })
 
   tl.fromTo(
     '.h-hero_bg',
@@ -1973,7 +2094,7 @@ function initHeroNew(container = document) {
     '-=2'
   )
 
-  tl.to('.mega-nav', { yPercent: 0, duration: 1.5 }, '<+=.5')
+  tl.to(nav, { yPercent: 0, duration: 1.5 }, '<+=.5')
 
   if (linkList) {
     const links = Array.from(linkList.querySelectorAll('.h-hero-2_link'))
@@ -2063,6 +2184,12 @@ function initAcceleratingGlobe(container = document) {
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
+
+    registerCleanup(() => {
+      window.removeEventListener('scroll', onScroll)
+      clearTimeout(stopTimeout)
+      tl.kill()
+    })
   })
 }
 
@@ -2209,7 +2336,7 @@ function initRoomsBackground(container = document) {
   })
 }
 
-function initHeroHover(container = document) {
+function initHomeHeroHover(container = document) {
   const links = container.querySelectorAll('.h-hero-2_link')
   const overlay = container.querySelector('.h-hero_bg-overlay')
   if (!links.length) return
@@ -2263,11 +2390,10 @@ function initHeroHover(container = document) {
 
 function initHomePage(container) {
   initHomeHeroParallax(container)
-  if (!onceFunctionsInitialized) initHeroNew(container)
-  initClippingImageTrail(container)
+  //initClippingImageTrail(container)
   initAcceleratingGlobe(container)
   initRoomsBackground(container)
-  initHeroHover(container)
+  initHomeHeroHover(container)
 }
 
 // =====================================================
@@ -2332,11 +2458,136 @@ const initClubGallery = (container = document) => {
       },
     })
 
-    tl.to(gallery, { x: '-20vw' })
+    const imgs = trigger.querySelectorAll('.gallery_img')
+    tl.to(gallery, { x: '-20vw' }, 0)
+    tl.to(imgs, { x: '-7%' }, 0)
   })
 }
 
 function initClubPage(container) {
   if (has('.network_component')) initClubNetwork(container)
   if (has('.gallery_component')) initClubGallery(container)
+}
+
+// Spaces page
+
+CustomEase.create('slideshow-wipe', '0.6, 0.08, 0.02, 0.99')
+
+function initSlideShow(el) {
+  // Save all elements in an object for easy reference
+  const ui = {
+    el,
+    slides: Array.from(el.querySelectorAll('[data-slideshow="slide"]')),
+    inner: Array.from(el.querySelectorAll('[data-slideshow="parallax"]')),
+    thumbs: Array.from(el.querySelectorAll('[data-slideshow="thumb"]')),
+  }
+
+  let current = 0
+  const length = ui.slides.length
+  let animating = false
+  let autoTimer
+  let animationDuration = 0.9 // Define the duration of your 'slide' here
+
+  ui.slides.forEach((slide, index) => {
+    slide.setAttribute('data-index', index)
+  })
+  ui.thumbs.forEach((thumb, index) => {
+    thumb.setAttribute('data-index', index)
+  })
+
+  ui.slides[current].classList.add('is--current')
+  ui.thumbs[current].classList.add('is--current')
+
+  function scheduleNext() {
+    if (autoTimer) autoTimer.kill()
+    const proxy = { value: 0 }
+    autoTimer = gsap.to(proxy, {
+      value: 100,
+      duration: 7,
+      ease: 'none',
+      onUpdate: () => el.style.setProperty('--slideshow-progress', proxy.value),
+      onComplete: () => {
+        navigate(1)
+        scheduleNext()
+      },
+    })
+  }
+
+  function navigate(direction, targetIndex = null) {
+    if (animating) return
+    animating = true
+
+    const previous = current
+    current =
+      targetIndex !== null && targetIndex !== undefined
+        ? targetIndex
+        : direction === 1
+          ? current < length - 1
+            ? current + 1
+            : 0
+          : current > 0
+            ? current - 1
+            : length - 1
+
+    const currentSlide = ui.slides[previous]
+    const currentInner = ui.inner[previous]
+    const upcomingSlide = ui.slides[current]
+    const upcomingInner = ui.inner[current]
+
+    gsap
+      .timeline({
+        defaults: {
+          duration: animationDuration,
+          ease: 'slideshow-wipe',
+        },
+        onStart: function () {
+          upcomingSlide.classList.add('is--current')
+          ui.thumbs[previous].classList.remove('is--current')
+          ui.thumbs[current].classList.add('is--current')
+        },
+        onComplete: function () {
+          currentSlide.classList.remove('is--current')
+          animating = false
+        },
+      })
+      .to(currentSlide, { xPercent: -direction * 100 }, 0)
+      .to(currentInner, { xPercent: direction * 50 }, 0)
+      .fromTo(upcomingSlide, { xPercent: direction * 100 }, { xPercent: 0 }, 0)
+      .fromTo(upcomingInner, { xPercent: -direction * 50 }, { xPercent: 0 }, 0)
+  }
+
+  function onClick(event) {
+    const targetIndex = parseInt(event.currentTarget.getAttribute('data-index'), 10)
+    if (targetIndex === current || animating) return
+    const direction = targetIndex > current ? 1 : -1
+    navigate(direction, targetIndex)
+    scheduleNext()
+  }
+
+  ui.thumbs.forEach((thumb) => {
+    thumb.addEventListener('click', onClick)
+  })
+
+  scheduleNext()
+
+  return {
+    destroy: function () {
+      if (autoTimer) autoTimer.kill()
+      ui.thumbs.forEach((thumb) => {
+        thumb.removeEventListener('click', onClick)
+      })
+    },
+  }
+}
+
+function initParallaxImageGalleryThumbnails(container = document) {
+  let wrappers = container.querySelectorAll('[data-slideshow="wrap"]')
+  wrappers.forEach((wrap) => {
+    const instance = initSlideShow(wrap)
+    registerCleanup(() => instance.destroy())
+  })
+}
+
+const initSpacesPage = (container) => {
+  initParallaxImageGalleryThumbnails(container)
 }
