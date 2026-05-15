@@ -289,7 +289,7 @@ function initNavThemeTriggers(container = document) {
 
     ScrollTrigger.create({
       trigger: section,
-      start: 'bottom top',
+      start: 'top 2%',
       onEnter: () => {
         nav.dataset.themeNav = targetTheme
       },
@@ -397,7 +397,7 @@ function initBarbaNavUpdate(data) {
   })
 }
 
-//  SHARED FEATURE MODULES (was global.js)
+//  SHARED FEATURE / GLOBAL MODULES (was global.js)
 // ------
 // ----------
 const initForm = (container = document) => {
@@ -1598,7 +1598,7 @@ const initParallax = (container = document) => {
           invalidateOnRefresh: true,
         },
       })
-      .to(parallaxImg, { yPercent: 9 })
+      .to(parallaxImg, { yPercent: 40 })
   })
 }
 
@@ -1953,6 +1953,96 @@ const initMomentumBasedHover = (container = document) => {
   })
 }
 
+const initEventSlider = (container = document) => {
+  container.querySelectorAll('.slider_component').forEach((component) => {
+    if (component.hasAttribute('data-slider')) return
+    component.setAttribute('data-slider', '')
+
+    const sliderElement = component.querySelector('.slider_wrap')
+    if (!sliderElement) return
+
+    const swiper = new Swiper(sliderElement, {
+      slidesPerView: 'auto',
+      followFinger: true,
+      freeMode: false,
+      slideToClickedSlide: false,
+      centeredSlides: false,
+      autoHeight: false,
+      speed: 600,
+      mousewheel: { forceToAxis: true },
+      keyboard: { enabled: true, onlyInViewport: true },
+      navigation: {
+        nextEl: component.querySelector('.slider_button.is-next'),
+        prevEl: component.querySelector('.slider_button.is-prev'),
+      },
+      pagination: {
+        el: component.querySelector('.slider_bullet_wrap'),
+        bulletActiveClass: 'is-active',
+        bulletClass: 'slider_bullet_item',
+        bulletElement: 'button',
+        clickable: true,
+      },
+      scrollbar: {
+        el: component.querySelector('.slider_draggable_wrap'),
+        draggable: true,
+        dragClass: 'slider_draggable_handle',
+        snapOnRelease: true,
+      },
+      slideActiveClass: 'is-active',
+      slideDuplicateActiveClass: 'is-active',
+    })
+  })
+}
+
+function initDynamicTextCursor(container = document) {
+  const cursor = container.querySelector('[data-cursor]')
+  const cursorTextTarget = container.querySelector('[data-cursor-text-target]')
+
+  if (!cursor || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+
+  let mouseX = 0
+  let mouseY = 0
+  let hasMouseMoved = false
+
+  const xTo = gsap.quickTo(cursor, 'x', { duration: 0.4, ease: 'power3.out' })
+  const yTo = gsap.quickTo(cursor, 'y', { duration: 0.4, ease: 'power3.out' })
+
+  function updateCursor() {
+    const hoverItem = container.elementFromPoint(mouseX, mouseY)?.closest('[data-cursor-hover]')
+    const rect = cursor.getBoundingClientRect()
+
+    const isHovering = !!hoverItem
+    const isEdge = rect.right >= window.innerWidth
+
+    cursor.setAttribute('data-cursor', isHovering ? (isEdge ? 'active-edge' : 'active') : '')
+
+    if (hoverItem && cursorTextTarget) {
+      const text = hoverItem.getAttribute('data-cursor-text')
+      if (text) cursorTextTarget.textContent = text
+    }
+  }
+
+  window.addEventListener('mousemove', (event) => {
+    mouseX = event.clientX
+    mouseY = event.clientY
+    hasMouseMoved = true
+
+    xTo(mouseX)
+    yTo(mouseY)
+
+    requestAnimationFrame(updateCursor)
+  })
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!hasMouseMoved) return
+      requestAnimationFrame(updateCursor)
+    },
+    { passive: true }
+  )
+}
+
 // =====================================================
 // Before Enter JS
 // =====================================================
@@ -1987,6 +2077,9 @@ function initGlobal(container) {
   initMomentumBasedHover(container)
   if (has('[data-nav-theme-to]')) initNavThemeTriggers(container)
   document.fonts.ready.then(() => initTextAnimations(container))
+
+  initEventSlider(container)
+  initDynamicTextCursor()
 }
 
 // =====================================================
@@ -2018,12 +2111,13 @@ const initHomeHeroParallax = (container = document) => {
       tl.to(
         heroImg,
         {
-          y: '20vh',
+          y: '60vh',
           // filter: 'brightness(80%)',
           ease: 'none',
         },
         0
       )
+      tl.to('.section_h-hero-2', { y: '30vh', ease: 'none' }, 0)
 
       // gsap.set(heroImg, { filter: 'brightness(100%)' })
     }
@@ -2088,7 +2182,7 @@ function initHomeHero(container = document) {
       duration: 2,
       onComplete: () => {
         // initMomentumBasedHover()
-        gsap.set('[data-hero-svg]', { overflow: 'visible' })
+        // gsap.set('[data-hero-svg]', { overflow: 'visible' })
       },
     },
     '-=2'
@@ -2109,7 +2203,7 @@ function initHomeHero(container = document) {
       cursor += r.width + gap
       return offset
     })
-    tl.fromTo(links, { x: (i) => fromX[i] }, { x: 0, duration: 2.5, ease: 'expo.inOut' }, '<')
+    tl.fromTo(links, { x: (i) => fromX[i] }, { x: 0, duration: 2.5, ease: 'expo.inOut' }, '<-.7')
   }
 
   /* Button */
