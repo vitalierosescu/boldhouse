@@ -1,6 +1,7 @@
 import gsap from 'gsap'
 import { MQ } from './utils/breakpoints.js'
 import { splitReveal } from './utils/splitReveal.js'
+import { initChromeC } from './utils/chromeC.js'
 
 // Dev fallback: expose npm gsap if the CDN copy isn't on `window` yet.
 // Webflow preview/production always loads gsap via <script src>, so this
@@ -59,10 +60,7 @@ const initialPageFade = () => {
   gsap.fromTo(elements, { autoAlpha: 0 }, { autoAlpha: 1 })
 }
 
-// -----------------------------------------
-// FUNCTION REGISTRY
-// -----------------------------------------
-
+// ====================== FUNCTION REGISTRY
 function initOnceFunctions() {
   initLenis()
   if (isOnceFunctionsInitialized) return
@@ -76,7 +74,7 @@ function initOnceFunctions() {
 function initBeforeEnterFunctions(next) {
   nextPage = next || document
 
-  initHero(nextPage)
+  initHeroEnter(nextPage)
   initialPageFade(nextPage)
 }
 
@@ -100,10 +98,8 @@ function initAfterEnterFunctions(next) {
   if (hasScrollTrigger) ScrollTrigger.refresh()
 }
 
-// -----------------------------------------
-// PAGE TRANSITIONS
-// -----------------------------------------
 
+// ================== PAGE TRANSITIONS
 function runPageOnceAnimation(next) {
   const tl = gsap.timeline()
 
@@ -138,6 +134,8 @@ function runPageLeaveAnimation(current, next) {
     },
     0
   )
+
+  initHeroExit(current)
 
   return tl
 }
@@ -175,11 +173,112 @@ function runPageEnterAnimation(next) {
   })
 }
 
+
+
 // -----------------------------------------
-// BARBA HOOKS + INIT
+// PAGE TRANSITIONS
 // -----------------------------------------
 
+// function runPageOnceAnimation(next) {
+//   const tl = gsap.timeline();
+
+//   tl.call(() => {
+//     resetPage(next);
+//   }, null, 0);
+
+//   return tl;
+// }
+
+// function runPageLeaveAnimation(current, next) {
+//   const transitionWrap = document.querySelector("[data-transition-wrap]");
+//   const transitionDark = transitionWrap.querySelector("[data-transition-dark]");
+
+//   const tl = gsap.timeline({
+//     onComplete: () => {
+//       current.remove();
+//     }
+//   })
+
+//   CustomEase.create("parallax", "0.7, 0.05, 0.13, 1");
+
+//   if (reducedMotion) {
+//     // Immediate swap behavior if user prefers reduced motion
+//     return tl.set(current, { autoAlpha: 0 });
+//   }
+
+//   tl.set(transitionWrap, {
+//     zIndex: 2
+//   });
+
+//   tl.fromTo(transitionDark, {
+//     autoAlpha: 0
+//   }, {
+//     autoAlpha: 0.8,
+//     duration: 1.2,
+//     ease: "boldhouse"
+//   }, 0);
+
+//   tl.fromTo(current, {
+//     y: "0vh"
+//   }, {
+//     y: "-25vh",
+//     duration: 1.2,
+//     ease: "boldhouse",
+//   }, 0);
+
+//   tl.set(transitionDark, {
+//     autoAlpha: 0,
+//   });
+
+//   return tl;
+// }
+
+// function runPageEnterAnimation(next) {
+//   const tl = gsap.timeline();
+
+//   if (reducedMotion) {
+//     // Immediate swap behavior if user prefers reduced motion
+//     tl.set(next, { autoAlpha: 1 });
+//     tl.add("pageReady")
+//     tl.call(resetPage, [next], "pageReady");
+//     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
+//   }
+
+//   tl.add("startEnter", 0);
+
+//   tl.set(next, {
+//     zIndex: 3
+//   });
+
+//   tl.fromTo(next, {
+//     y: "100vh"
+//   }, {
+//     y: "0vh",
+//     duration: 1.2,
+//     clearProps: "all",
+//     ease: "boldhouse"
+//   }, "startEnter");
+
+//   tl.add("pageReady");
+//   tl.call(resetPage, [next], "pageReady");
+
+//   return new Promise(resolve => {
+//     tl.call(resolve, null, "pageReady");
+//   });
+// }
+
+
+// ======================= BARBA HOOKS + INIT
+
 barba.hooks.beforeEnter((data) => {
+  // Position new container on top
+  gsap.set(data.next.container, {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+  });
+
   if (window.lenis && typeof window.lenis.stop === 'function') {
     window.lenis.stop()
   }
@@ -221,6 +320,7 @@ barba.init({
   transitions: [
     {
       name: 'default',
+      sync: true,
 
       // First load
       async once(data) {
@@ -397,9 +497,7 @@ function initBarbaNavUpdate(data) {
   })
 }
 
-//  SHARED FEATURE / GLOBAL MODULES (was global.js)
-// ------
-// ----------
+//  ==================== GLOBAL MODULES (was global.js)
 const initForm = (container = document) => {
   if (!container.querySelector('.form_input')) return
 
@@ -444,7 +542,7 @@ function initHighlightMarkerTextReveal(container = document) {
   }
 
   const colorMap = {
-    accent: '#9CFFAC',
+    accent: '#82eeff',
     white: '#FFFFFF',
   }
 
@@ -587,18 +685,18 @@ function initButtonHover(container = document) {
 
     const text = button.textContent // Get the button's text content
     button.innerHTML = '' // Clear the original content
-    ;[...text].forEach((char, index) => {
-      const span = document.createElement('span')
-      span.textContent = char
-      span.style.transitionDelay = `${index * offsetIncrement}s`
+      ;[...text].forEach((char, index) => {
+        const span = document.createElement('span')
+        span.textContent = char
+        span.style.transitionDelay = `${index * offsetIncrement}s`
 
-      // Handle spaces explicitly
-      if (char === ' ') {
-        span.style.whiteSpace = 'pre' // Preserve space width
-      }
+        // Handle spaces explicitly
+        if (char === ' ') {
+          span.style.whiteSpace = 'pre' // Preserve space width
+        }
 
-      button.appendChild(span)
-    })
+        button.appendChild(span)
+      })
   })
 }
 
@@ -735,7 +833,7 @@ function initMegaNavDirectionalHover() {
     const prev = [s.visibility, s.opacity, s.pointerEvents]
     Object.assign(s, { visibility: 'visible', opacity: '0', pointerEvents: 'none' })
     const h = el.getBoundingClientRect().height
-    ;[s.visibility, s.opacity, s.pointerEvents] = prev
+      ;[s.visibility, s.opacity, s.pointerEvents] = prev
     return h
   }
 
@@ -1581,9 +1679,9 @@ const initPerks = (container = document) => {
 }
 
 const initParallax = (container = document) => {
-  if (!container.querySelector('[data-parallax]')) return
+  if (!container.querySelector('.parallax-parent')) return
 
-  container.querySelectorAll('[data-parallax]').forEach((parallaxParent) => {
+  container.querySelectorAll('.parallax-parent').forEach((parallaxParent) => {
     const parallaxImg = parallaxParent.querySelector('.parallax')
     if (!parallaxImg) return
 
@@ -1705,11 +1803,11 @@ function initOverlappingSlider(container = document) {
       maxDuration: 1,
       snap: true
         ? (raw) => {
-            // raw is the x value
-            const d = clamp(-raw)
-            const idx = spacing > 0 ? Math.round(d / spacing) : 0
-            return -idx * spacing
-          }
+          // raw is the x value
+          const d = clamp(-raw)
+          const idx = spacing > 0 ? Math.round(d / spacing) : 0
+          return -idx * spacing
+        }
         : false,
       onDrag() {
         dragX = clamp(-this.x)
@@ -1809,7 +1907,7 @@ const initFaq = (container = document) => {
     const openOnHover = component.getAttribute('data-open-on-hover') === 'true'
     const openByDefault =
       component.getAttribute('data-open-by-default') !== null &&
-      !isNaN(+component.getAttribute('data-open-by-default'))
+        !isNaN(+component.getAttribute('data-open-by-default'))
         ? +component.getAttribute('data-open-by-default')
         : false
     const list = component.querySelector('.accordion_list')
@@ -1824,9 +1922,9 @@ const initFaq = (container = document) => {
       const nestedItems = dynList?.firstElementChild?.children
       if (!nestedItems) return
       const staticWrapper = [...slot.children]
-      ;[...nestedItems].forEach(
-        (el) => el.firstElementChild && slot.appendChild(el.firstElementChild)
-      )
+        ;[...nestedItems].forEach(
+          (el) => el.firstElementChild && slot.appendChild(el.firstElementChild)
+        )
       staticWrapper.forEach((el) => el.remove())
     }
     removeCMSList(list)
@@ -1864,8 +1962,8 @@ const initFaq = (container = document) => {
       const closeAccordion = () =>
         card.classList.contains('is-opened') &&
         (card.classList.remove('is-opened'),
-        tl.reverse(),
-        button.setAttribute('aria-expanded', 'false'))
+          tl.reverse(),
+          button.setAttribute('aria-expanded', 'false'))
       closeFunctions[cardIndex] = closeAccordion
 
       const openAccordion = (instant = false) => {
@@ -2043,11 +2141,150 @@ function initDynamicTextCursor(container = document) {
   )
 }
 
-// =====================================================
-// Before Enter JS
-// =====================================================
+function initMarqueeScrollDirection(container = document) {
+  container.querySelectorAll('[data-marquee-scroll-direction-target]').forEach((marquee) => {
+    // Query marquee elements
+    const marqueeContent = marquee.querySelector('[data-marquee-collection-target]');
+    const marqueeScroll = marquee.querySelector('[data-marquee-scroll-target]');
+    if (!marqueeContent || !marqueeScroll) return;
 
-const initHero = (container = document) => {
+    // Get data attributes
+    const { marqueeSpeed: speed, marqueeDirection: direction, marqueeDuplicate: duplicate, marqueeScrollSpeed: scrollSpeed } = marquee.dataset;
+
+    // Convert data attributes to usable types
+    const marqueeSpeedAttr = parseFloat(speed);
+    const marqueeDirectionAttr = direction === 'right' ? 1 : -1; // 1 for right, -1 for left
+    const duplicateAmount = parseInt(duplicate || 0);
+    const scrollSpeedAttr = parseFloat(scrollSpeed);
+    const speedMultiplier = window.innerWidth < 479 ? 0.25 : window.innerWidth < 991 ? 0.5 : 1;
+
+    const marqueeSpeed = marqueeSpeedAttr * (marqueeContent.offsetWidth / window.innerWidth) * speedMultiplier;
+
+    // Precompute styles for the scroll container
+    marqueeScroll.style.marginLeft = `${scrollSpeedAttr * -1}%`;
+    marqueeScroll.style.width = `${(scrollSpeedAttr * 2) + 100}%`;
+
+    // Duplicate marquee content
+    if (duplicateAmount > 0) {
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i < duplicateAmount; i++) {
+        fragment.appendChild(marqueeContent.cloneNode(true));
+      }
+      marqueeScroll.appendChild(fragment);
+    }
+
+    // GSAP animation for marquee content
+    const marqueeItems = marquee.querySelectorAll('[data-marquee-collection-target]');
+    const animation = gsap.to(marqueeItems, {
+      xPercent: -100, // Move completely out of view
+      repeat: -1,
+      duration: marqueeSpeed,
+      ease: 'linear'
+    }).totalProgress(0.5);
+
+    // Initialize marquee in the correct direction
+    gsap.set(marqueeItems, { xPercent: marqueeDirectionAttr === 1 ? 100 : -100 });
+    animation.timeScale(marqueeDirectionAttr); // Set correct direction
+    animation.play(); // Start animation immediately
+
+    // Set initial marquee status
+    marquee.setAttribute('data-marquee-status', 'normal');
+
+    // ScrollTrigger logic for direction inversion
+    ScrollTrigger.create({
+      trigger: marquee,
+      start: 'top bottom',
+      end: 'bottom top',
+      onUpdate: (self) => {
+        const isInverted = self.direction === 1; // Scrolling down
+        const currentDirection = isInverted ? -marqueeDirectionAttr : marqueeDirectionAttr;
+
+        // Update animation direction and marquee status
+        animation.timeScale(currentDirection);
+        marquee.setAttribute('data-marquee-status', isInverted ? 'normal' : 'inverted');
+      }
+    });
+
+    // Extra speed effect on scroll
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: marquee,
+        start: '0% 100%',
+        end: '100% 0%',
+        scrub: 0
+      }
+    });
+
+    const scrollStart = marqueeDirectionAttr === -1 ? scrollSpeedAttr : -scrollSpeedAttr;
+    const scrollEnd = -scrollStart;
+
+    tl.fromTo(marqueeScroll, { x: `${scrollStart}vw` }, { x: `${scrollEnd}vw`, ease: 'none' });
+  });
+}
+
+function initCta(container = document) {
+  const bg = container.querySelector('.cta_bg')
+
+  if (bg) {
+    gsap.matchMedia().add(MQ.tabletUp, () => {
+      gsap.fromTo(
+        bg,
+        { width: '100%' },
+        {
+          width: '100vw',
+          ease: 'none',
+          scrollTrigger: {
+            trigger: '.section_cta',
+            start: 'clamp(top 100%)',
+            end: 'bottom bottom',
+            scrub: true,
+          },
+        }
+      )
+    })
+  }
+
+
+}
+
+function initReviews(container = document) {
+  const svg = container.querySelectorAll('.m-slider_duration-svg')
+  const monthItem = container.querySelectorAll('.m-slider_duration-wrap')
+  const trigger = container.querySelector('[data-reviews-section]')
+
+  if (svg) {
+    gsap.matchMedia().add(MQ.tabletUp, () => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: trigger,
+          start: 'clamp(top 100%)',
+          end: 'bottom top',
+          scrub: true,
+        },
+        defaults: { ease: 'none' }
+      });
+
+      tl.fromTo(
+        svg,
+        { rotateZ: '100deg', scale: 1.5 },
+        {
+          rotateZ: '360deg',
+          scale: 1,
+        }
+      )
+      .fromTo(monthItem[0], { y: '30%' }, { y: '-120%', }, 0)
+      .fromTo(monthItem[1], { y: '-120%' }, { y: '30%', }, 0)
+    });
+  }
+
+
+}
+
+
+
+// =================== Before Enter JS
+
+const initHeroEnter = (container = document) => {
   const heroHeadings = container.querySelectorAll('[data-hero-heading]')
   heroHeadings.forEach((heading) => {
     splitReveal(heading, {
@@ -2058,9 +2295,20 @@ const initHero = (container = document) => {
   })
 }
 
-// =====================================================
-// Global JS
-// =====================================================
+const initHeroExit = (container = document) => {
+  const heroHeadings = container.querySelectorAll('[data-hero-heading]')
+  heroHeadings.forEach((heading) => {
+    // move to top instead of from bottom
+    gsap.to(heading.querySelectorAll('.line'), {
+      yPercent: -110,
+      stagger: 0.08,
+      duration: 1.2,
+      ease: 'expo.out',
+    })
+  })
+}
+
+// =================== GLOBAL JS
 
 function initGlobal(container) {
   initForm(container)
@@ -2072,7 +2320,7 @@ function initGlobal(container) {
   if (has('[data-stacking-cards-init]')) initStackingStickyCardsBounce(container)
   initPerks(container)
   initParallax(container)
-  initOverlappingSlider(container)
+  //initOverlappingSlider(container)
   initFaq(container)
   initMomentumBasedHover(container)
   if (has('[data-nav-theme-to]')) initNavThemeTriggers(container)
@@ -2080,11 +2328,15 @@ function initGlobal(container) {
 
   initEventSlider(container)
   initDynamicTextCursor()
+
+  initMarqueeScrollDirection(container)
+
+  initCta(container)
+  initReviews(container)
+  initClippingImageTrail(container)
 }
 
-// =====================================================
-// HOME JS
-// =====================================================
+// =================== HOME page
 
 CustomEase.create('drift', 'M0,0 C0.65,0 0,1.04 1,1')
 
@@ -2482,17 +2734,170 @@ function initHomeHeroHover(container = document) {
   })
 }
 
+const initHighlightImages = (container = document) => {
+  const section = container.querySelector('.section_quote')
+  if (!section) return
+
+  const items = section.querySelectorAll('.highlight-img_item')
+  if (!items.length) return
+
+  const SPEEDS = [100, 40, 15, 50]
+
+  items.forEach((item, i) => {
+    gsap.set(item, { clipPath: 'inset(50%)', willChange: 'clip-path, transform' })
+
+    gsap.to(item, {
+      clipPath: 'inset(0%)',
+      duration: 1,
+      ease: 'boldhouse',
+      scrollTrigger: {
+        trigger: item,
+        start: 'clamp(top 85%)',
+        once: true,
+      },
+    })
+
+    gsap.to(item, {
+      yPercent: SPEEDS[i % SPEEDS.length],
+      ease: 'none',
+      scrollTrigger: {
+        trigger: section,
+        start: 'clamp(top bottom)',
+        end: 'bottom top',
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    })
+  })
+}
+
+function initTabSystem(container = document) {
+  const wrappers = container.querySelectorAll('[data-tabs="wrapper"]')
+
+  wrappers.forEach((wrapper) => {
+    const contentItems = wrapper.querySelectorAll('[data-tabs="content-item"]')
+    const visualItems = wrapper.querySelectorAll('[data-tabs="visual-item"]')
+    const squares = wrapper.querySelectorAll('.content-item_square')
+
+    const autoplay = wrapper.dataset.tabsAutoplay === 'true'
+    const autoplayDuration = parseInt(wrapper.dataset.tabsAutoplayDuration) || 5000
+
+    let activeContent = null // keep track of active item/link
+    let activeVisual = null
+    let isAnimating = false
+    let progressBarTween = null // to stop/start the progress bar
+
+    function startProgressBar(index) {
+      if (progressBarTween) progressBarTween.kill()
+      const bar = contentItems[index].querySelector('[data-tabs="item-progress"]')
+      if (!bar) return
+
+      // In this function, you can basically do anything you want, that should happen as a tab is active
+      // Maybe you have a circle filling, some other element growing, you name it.
+      gsap.set(bar, { scaleX: 0, transformOrigin: 'left center' })
+      progressBarTween = gsap.to(bar, {
+        scaleX: 1,
+        duration: autoplayDuration / 1000,
+        ease: 'power1.inOut',
+        onComplete: () => {
+          if (!isAnimating) {
+            const nextIndex = (index + 1) % contentItems.length
+            switchTab(nextIndex) // once bar is full, set next to active – this is important
+          }
+        },
+      })
+    }
+
+    function switchTab(index) {
+      if (isAnimating || contentItems[index] === activeContent) return
+
+      isAnimating = true
+      if (progressBarTween) progressBarTween.kill() // Stop any running progress bar here
+
+      const outgoingContent = activeContent
+      const outgoingVisual = activeVisual
+      const outgoingBar = outgoingContent?.querySelector('[data-tabs="item-progress"]')
+      const outgoingDetails = outgoingContent?.querySelector('[data-tabs="item-details"]')
+
+      const incomingContent = contentItems[index]
+      const incomingVisual = visualItems[index]
+      const incomingBar = incomingContent.querySelector('[data-tabs="item-progress"]')
+      const incomingDetails = incomingContent.querySelector('[data-tabs="item-details"]')
+
+      // Square indicator: animate the about-to-be-visible square FROM the
+      // currently-visible square's position back to its own natural position.
+      // CSS handles opacity (only the .active item's square is visible), so
+      // the visual effect is "the marker glides between tabs."
+      const outgoingSquare = outgoingContent?.querySelector('.content-item_square')
+      const incomingSquare = squares[index]
+      if (outgoingSquare && incomingSquare) {
+        gsap.set([outgoingSquare, incomingSquare], { clearProps: 'x,y' })
+        const oldRect = outgoingSquare.getBoundingClientRect()
+        const newRect = incomingSquare.getBoundingClientRect()
+        gsap.fromTo(
+          incomingSquare,
+          { x: oldRect.left - newRect.left, y: oldRect.top - newRect.top },
+          { x: 0, y: 0, duration: 0.65, ease: 'power3' },
+        )
+      }
+
+      outgoingContent?.classList.remove('active')
+      outgoingVisual?.classList.remove('active')
+      incomingContent.classList.add('active')
+      incomingVisual.classList.add('active')
+
+      const tl = gsap.timeline({
+        defaults: { duration: 0.65, ease: 'power3' },
+        onComplete: () => {
+          activeContent = incomingContent
+          activeVisual = incomingVisual
+          isAnimating = false
+          if (autoplay) startProgressBar(index) // Start autoplay bar here
+        },
+      })
+
+      // Wrap 'outgoing' in a check to prevent warnings on first run of the function
+      // Of course, during first run (on page load), there's no 'outgoing' tab yet!
+      if (outgoingContent) {
+        tl.set(outgoingBar, { transformOrigin: 'right center' })
+          .to(outgoingBar, { scaleX: 0, duration: 0.3 }, 0)
+          .to(outgoingVisual, { autoAlpha: 0, xPercent: 3 }, 0)
+          .to(outgoingDetails, { height: 0 }, 0)
+      }
+
+      tl.fromTo(incomingVisual, { autoAlpha: 0, xPercent: 3 }, { autoAlpha: 1, xPercent: 0 }, 0.3)
+        .fromTo(incomingDetails, { height: 0 }, { height: 'auto' }, 0)
+        .set(incomingBar, { scaleX: 0, transformOrigin: 'left center' }, 0)
+    }
+
+    // on page load, set first to active
+    // idea: you could wrap this in a scrollTrigger
+    // so it will only start once a user reaches this section
+    switchTab(0)
+
+    // switch tabs on click
+    contentItems.forEach((item, i) =>
+      item.addEventListener('click', () => {
+        if (item === activeContent) return // ignore click if current one is already active
+        switchTab(i)
+      }),
+    )
+  })
+}
+
 function initHomePage(container) {
   initHomeHeroParallax(container)
-  //initClippingImageTrail(container)
   initAcceleratingGlobe(container)
   initRoomsBackground(container)
   initHomeHeroHover(container)
+  initHighlightImages(container)
+  initTabSystem(container)
+
+  const chromeCTeardown = initChromeC(container)
+  if (chromeCTeardown) registerCleanup(chromeCTeardown)
 }
 
-// =====================================================
-// CLUB PAGE (was pages/club.js)
-// =====================================================
+// ================= CLUB page (was pages/club.js)
 
 const initClubNetwork = (container = document) => {
   const trigger = container.querySelector('.section_network')
@@ -2558,12 +2963,54 @@ const initClubGallery = (container = document) => {
   })
 }
 
+gsap.registerPlugin(ScrollTrigger);
+
+function initStackingCardsParallax() {
+  const cards = document.querySelectorAll("[data-stacking-cards-item]");
+
+  if (cards.length < 2) return;
+
+  cards.forEach((card, i) => {
+    // Skip over the first section
+    if (i === 0) return;
+
+    // When current section is in view, target the PREVIOUS one
+    const previousCard = cards[i - 1]
+    if (!previousCard) return;
+
+    // Find any element inside the previous card
+    const previousCardImage = previousCard.querySelector("[data-stacking-cards-img]")
+    const previousCardFade = previousCard.querySelector(".stacking-cards__fade")
+
+    const tl = gsap.timeline({
+      defaults: {
+        ease: "none",
+        duration: 1
+      },
+      scrollTrigger: {
+        trigger: card,
+        start: "top bottom",
+        end: "top top",
+        scrub: true,
+        invalidateOnRefresh: true
+      }
+    })
+
+    tl.fromTo(previousCard, { y: '0vh', scale: 1 }, { y: '-2vh', scale: 0.98 })
+      .fromTo(previousCardFade, { opacity: 0 }, { opacity: .6 }, "<")
+    // .fromTo(previousCardImage, { rotate: 0, yPercent: 0 }, { rotate: -5, yPercent: -25 }, "<")
+  });
+}
+
 function initClubPage(container) {
   if (has('.network_component')) initClubNetwork(container)
   if (has('.gallery_component')) initClubGallery(container)
+  if (has("[data-stacking-cards-item]")) initStackingCardsParallax();
 }
 
-// Spaces page
+
+
+// ================= SPACES page
 
 CustomEase.create('slideshow-wipe', '0.6, 0.08, 0.02, 0.99')
 
@@ -2580,7 +3027,7 @@ function initSlideShow(el) {
   const length = ui.slides.length
   let animating = false
   let autoTimer
-  let animationDuration = 0.9 // Define the duration of your 'slide' here
+  const animationDuration = 0.9 // Define the duration of your 'slide' here
 
   ui.slides.forEach((slide, index) => {
     slide.setAttribute('data-index', index)
@@ -2675,7 +3122,7 @@ function initSlideShow(el) {
 }
 
 function initParallaxImageGalleryThumbnails(container = document) {
-  let wrappers = container.querySelectorAll('[data-slideshow="wrap"]')
+  const wrappers = container.querySelectorAll('[data-slideshow="wrap"]')
   wrappers.forEach((wrap) => {
     const instance = initSlideShow(wrap)
     registerCleanup(() => instance.destroy())

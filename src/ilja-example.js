@@ -11,7 +11,7 @@ const lottieAnimations = [
   'https://uploads-ssl.webflow.com/659f15a242e58eb40c8cf14b/65cdf882218339a1bb49c9f5_Leaf%2001.json',
 ]
 
-let generalFlag = false
+const generalFlag = false
 let globalMuteState = false
 let globalPlayState = true
 let resizeTimer
@@ -34,9 +34,9 @@ const STRIPE_KEY = IS_PRODUCTION
   : 'pk_test_51LNkQgGGy6RMRSOZBuGNHGAfrI8V5JooMTVzLcPzz00DXKodZojAdF4aVZiXKG246OARKGmT7gvTdAoww5Gg9WWq00e63ZrMiZ'
 const PLAN_ID_ATTRIBUTE = IS_PRODUCTION ? 'data-flow-account-id' : 'data-flow-account-test-id'
 
-let TRIAL_VARIANT = '202602_FREE_14'
-let TRIAL_PRICE = 0 // drives UI, keep in sync with TRIAL_VARIANT
-let TRIAL_LENGTH = 14 // drives UI, keep in sync with TRIAL_VARIANT
+const TRIAL_VARIANT = '202602_FREE_14'
+const TRIAL_PRICE = 0 // drives UI, keep in sync with TRIAL_VARIANT
+const TRIAL_LENGTH = 14 // drives UI, keep in sync with TRIAL_VARIANT
 
 // Remove below once ready to turn on 202602_FREE_14
 // if (IS_PRODUCTION) {
@@ -95,8 +95,8 @@ function transitionIn(next, name) {
     next = document.querySelector('[data-barba="container"]')
   }
   //
-  let fade = next.querySelectorAll('[data-flow-fade]')
-  let bounce = next.querySelectorAll('[data-flow-bounce]')
+  const fade = next.querySelectorAll('[data-flow-fade]')
+  const bounce = next.querySelectorAll('[data-flow-bounce]')
 
   const tl = gsap.timeline({
     onStart: () => {
@@ -209,9 +209,9 @@ function setLoadingState(isLoading) {
 }
 
 function resetWebflow(data) {
-  let parser = new DOMParser()
-  let dom = parser.parseFromString(data.next.html, 'text/html')
-  let webflowPageId = dom.querySelector('html').getAttribute('data-wf-page')
+  const parser = new DOMParser()
+  const dom = parser.parseFromString(data.next.html, 'text/html')
+  const webflowPageId = dom.querySelector('html').getAttribute('data-wf-page')
   document.documentElement.setAttribute('data-wf-page', webflowPageId)
   window.Webflow.destroy()
   window.Webflow.ready()
@@ -1426,7 +1426,7 @@ function initCursorAndButtons(container) {
     if (generalFlag === false) {
       container = document.querySelector('body')
     }
-    let follower = document.querySelector('.cursor-item')
+    const follower = document.querySelector('.cursor-item')
     if (!follower || !container) return
     let targetX = 0,
       targetY = 0
@@ -1446,8 +1446,8 @@ function initCursorAndButtons(container) {
     const rotationSensitivity = 0.1
 
     function animate() {
-      let dx = targetX - currentX
-      let dy = targetY - currentY
+      const dx = targetX - currentX
+      const dy = targetY - currentY
 
       // Calculate velocity
       velocityX += dx * stiffness
@@ -1461,7 +1461,7 @@ function initCursorAndButtons(container) {
       currentX += velocityX
       currentY += velocityY
 
-      let speedY = targetY - lastY
+      const speedY = targetY - lastY
 
       if (Math.abs(speedY) > 0.2) {
         rotation = Math.max(Math.min(rotation + speedY * (rotationSensitivity * -1), 90), -90)
@@ -1563,7 +1563,7 @@ function initCursorAndButtons(container) {
           path: selectedAnimation,
         })
 
-        let tl = gsap.timeline({})
+        const tl = gsap.timeline({})
 
         tl.to(button, {
           scale: 0.95,
@@ -1588,12 +1588,12 @@ function initVideoOnHover() {
   }
   if (!isMobileLandscape) {
     console.log('yo')
-    let videoPlayTriggers = document.querySelectorAll('[data-video-hover]')
+    const videoPlayTriggers = document.querySelectorAll('[data-video-hover]')
     if (!videoPlayTriggers) return
 
     videoPlayTriggers.forEach((trigger) => {
-      let image = trigger.querySelector('img')
-      let video = trigger.querySelector('video')
+      const image = trigger.querySelector('img')
+      const video = trigger.querySelector('video')
 
       trigger.addEventListener('mouseenter', () => {
         gsap.to(image, {
@@ -1777,7 +1777,7 @@ const initDropdown = (next) => {
   const dd = next.querySelector('[dropdown-status]')
   if (dd) {
     dd.addEventListener('click', () => {
-      let status = dd.getAttribute('dropdown-status')
+      const status = dd.getAttribute('dropdown-status')
       if (status === 'open') {
         dd.setAttribute('dropdown-status', 'closed')
         gsap.to('.checkout-dropdown__content', {
@@ -1996,10 +1996,10 @@ function initMemberStories() {
     const tl = gsap.timeline({
       onStart: () => {
         if (size === 'portrait') {
-          let m = document.querySelector('.modal-inner')
+          const m = document.querySelector('.modal-inner')
           m.classList.add('portrait')
         } else {
-          let m = document.querySelector('.modal-inner')
+          const m = document.querySelector('.modal-inner')
           m.classList.remove('portrait')
         }
       },
@@ -2075,10 +2075,10 @@ function initMemberStories() {
 }
 
 function initSheetOverlay(container) {
-  let sheetWrap = container.querySelector('.flow-modal')
-  let openButtons = container.querySelectorAll('[data-sheet-open="yes"]')
+  const sheetWrap = container.querySelector('.flow-modal')
+  const openButtons = container.querySelectorAll('[data-sheet-open="yes"]')
   if (openButtons.length > 0) {
-    var state = 'closed'
+    let state = 'closed'
 
     openButtons.forEach((button) => {
       button.addEventListener('click', () => {
@@ -2321,7 +2321,7 @@ function initGuidesOverlay(next) {
   overlayCloseTrigger.forEach((trigger) => {
     trigger.addEventListener('click', () => {
       overlayItems.forEach((item) => {
-        let video = item.querySelector('video')
+        const video = item.querySelector('video')
         video.pause()
       })
       gsap
@@ -2359,8 +2359,8 @@ function initGuidesOverlay(next) {
     const currentActiveItem = overlayItems[currentActiveIndex]
     const yMovement = direction === 'next' ? -1 : 1
 
-    let currentVideo = currentActiveItem.querySelector('video')
-    let newVideo = newActiveItem.querySelector('video')
+    const currentVideo = currentActiveItem.querySelector('video')
+    const newVideo = newActiveItem.querySelector('video')
 
     currentVideo.pause()
 
@@ -2468,27 +2468,27 @@ function initGuidesOverlay(next) {
 
   overlayNextButtons.forEach((button) => {
     button.addEventListener('click', () => {
-      let currentIndex = Array.from(overlayItems).findIndex((item) =>
+      const currentIndex = Array.from(overlayItems).findIndex((item) =>
         item.classList.contains('is--active')
       )
-      let newIndex = currentIndex === overlayItems.length - 1 ? 0 : currentIndex + 1
+      const newIndex = currentIndex === overlayItems.length - 1 ? 0 : currentIndex + 1
       updateActiveItem(newIndex, 'next')
     })
   })
 
   overlayPrevButtons.forEach((button) => {
     button.addEventListener('click', () => {
-      let currentIndex = Array.from(overlayItems).findIndex((item) =>
+      const currentIndex = Array.from(overlayItems).findIndex((item) =>
         item.classList.contains('is--active')
       )
-      let newIndex = currentIndex === 0 ? overlayItems.length - 1 : currentIndex - 1
+      const newIndex = currentIndex === 0 ? overlayItems.length - 1 : currentIndex - 1
       updateActiveItem(newIndex, 'prev')
     })
   })
 }
 
 function initPriceCards(next) {
-  let wrap = next.querySelector('[data-pricing-section]')
+  const wrap = next.querySelector('[data-pricing-section]')
 
   if (!wrap) {
     return
@@ -2501,7 +2501,7 @@ function initPriceCards(next) {
 
     buttons.forEach((button) => {
       const type = button.getAttribute('data-price-toggle')
-      let equalButtons = wrap.querySelectorAll(`[data-price-toggle="${type}"]`)
+      const equalButtons = wrap.querySelectorAll(`[data-price-toggle="${type}"]`)
       button.addEventListener('click', () => {
         if (row.getAttribute('data-price-status') === type) return
         row.setAttribute('data-price-status', type)
@@ -2515,13 +2515,13 @@ function initPriceCards(next) {
     getStartedButtons.forEach((gsButton) => {
       gsButton.addEventListener('click', () => {
         const planKey = 'user.signup.selectedPlan'
-        let planData = JSON.parse(localStorage.getItem(planKey)) || {}
-        let billingFrequency = gsButton.getAttribute('data-flow-account-frequency')
-        let due = gsButton.getAttribute('data-flow-account-due')
-        let monthly = gsButton.getAttribute('data-flow-account-monthly')
-        let id = gsButton.getAttribute(PLAN_ID_ATTRIBUTE)
-        let isMostPopular = gsButton.hasAttribute('data-flow-popular')
-        let type = gsButton.getAttribute('data-flow-account-type')
+        const planData = JSON.parse(localStorage.getItem(planKey)) || {}
+        const billingFrequency = gsButton.getAttribute('data-flow-account-frequency')
+        const due = gsButton.getAttribute('data-flow-account-due')
+        const monthly = gsButton.getAttribute('data-flow-account-monthly')
+        const id = gsButton.getAttribute(PLAN_ID_ATTRIBUTE)
+        const isMostPopular = gsButton.hasAttribute('data-flow-popular')
+        const type = gsButton.getAttribute('data-flow-account-type')
 
         planData.billingFrequency = billingFrequency
         planData.amount = due
@@ -2758,7 +2758,7 @@ async function sendStripeCheckout(
   customerId
 ) {
   let response = {}
-  let data = {
+  const data = {
     email: email,
     guideSignUpId: guideSignUpId,
     billingUserFirstName: firstName,
@@ -2893,7 +2893,7 @@ const initFlowProgress = (next) => {
 function initFlowInput(container) {
   container = container || document.querySelector('[data-barba-container]')
   const storageKey = 'flowInputData'
-  let flowData = JSON.parse(localStorage.getItem(storageKey)) || {}
+  const flowData = JSON.parse(localStorage.getItem(storageKey)) || {}
   const formWrap = container.querySelector('[data-form-wrap]')
   if (!formWrap) return
   const stepKey = formWrap.dataset.key
@@ -2944,14 +2944,14 @@ function initFlowInput(container) {
   }
 
   // Store click inputs
-  let items = formWrap.querySelectorAll('[data-form-input]')
+  const items = formWrap.querySelectorAll('[data-form-input]')
   items.forEach((item) => {
     item.addEventListener('click', handleInputClick)
   })
 
   // Store email input
-  let emailInput = container.querySelector('[data-flow-email-input]')
-  let emailSubmit = container.querySelector('[data-flow-email-submit]')
+  const emailInput = container.querySelector('[data-flow-email-input]')
+  const emailSubmit = container.querySelector('[data-flow-email-submit]')
   if (emailInput && emailSubmit) {
     // Listen for input changes
     emailInput.addEventListener('input', function () {
@@ -2996,29 +2996,29 @@ function initFlowInput(container) {
 
   // Store guide input
   if (container.getAttribute('data-barba-namespace') === 'flow-guides') {
-    let guideCards = container.querySelectorAll('.flow-guide__list .flow-guide__item')
-    let guideButtons = container.querySelectorAll('[data-flow-guide]')
+    const guideCards = container.querySelectorAll('.flow-guide__list .flow-guide__item')
+    const guideButtons = container.querySelectorAll('[data-flow-guide]')
     guideButtons.forEach((button, element, index) => {
       button.addEventListener('click', function () {
-        let activeGuide = document.querySelector('.overlay-item.is--active')
+        const activeGuide = document.querySelector('.overlay-item.is--active')
         if (!activeGuide) return
-        let bioEl = activeGuide.querySelector('[data-guide-bio]')
-        let bio = bioEl ? bioEl.textContent.trim() : ''
-        let firstName = activeGuide.dataset.guideFirstname || ''
-        let lastName = activeGuide.dataset.guideLastname || ''
-        let pronouns = activeGuide.dataset.guidePronouns || ''
-        let signupId = activeGuide.dataset.guideSignupid || ''
-        let status = activeGuide.dataset.guideStatus || ''
-        let profileImageEl = activeGuide.querySelector('[data-guide-image]')
-        let profileImageUrl = profileImageEl ? profileImageEl.getAttribute('src') : ''
-        let styles = Object.keys(activeGuide.dataset)
+        const bioEl = activeGuide.querySelector('[data-guide-bio]')
+        const bio = bioEl ? bioEl.textContent.trim() : ''
+        const firstName = activeGuide.dataset.guideFirstname || ''
+        const lastName = activeGuide.dataset.guideLastname || ''
+        const pronouns = activeGuide.dataset.guidePronouns || ''
+        const signupId = activeGuide.dataset.guideSignupid || ''
+        const status = activeGuide.dataset.guideStatus || ''
+        const profileImageEl = activeGuide.querySelector('[data-guide-image]')
+        const profileImageUrl = profileImageEl ? profileImageEl.getAttribute('src') : ''
+        const styles = Object.keys(activeGuide.dataset)
           .filter((key) => key.startsWith('guideStyle'))
           .sort(
             (a, b) =>
               parseInt(a.replace('guideStyle', ''), 10) - parseInt(b.replace('guideStyle', ''), 10)
           )
           .map((key) => activeGuide.dataset[key])
-        let selectedGuide = {
+        const selectedGuide = {
           bio,
           firstName,
           lastName,
@@ -3041,13 +3041,13 @@ function initFlowInput(container) {
   }
 
   // Account type selection
-  let accountTypeButtons = container.querySelectorAll('[data-flow-account-type]')
+  const accountTypeButtons = container.querySelectorAll('[data-flow-account-type]')
   if (accountTypeButtons.length) {
     accountTypeButtons.forEach((button) => {
       button.addEventListener('click', function () {
         const planKey = 'user.signup.selectedPlan'
-        let planData = JSON.parse(localStorage.getItem(planKey)) || {}
-        let planType = button.getAttribute('data-flow-account-type') || button.value
+        const planData = JSON.parse(localStorage.getItem(planKey)) || {}
+        const planType = button.getAttribute('data-flow-account-type') || button.value
         planData.type = planType
         localStorage.setItem(planKey, JSON.stringify(planData))
         //console.log("Saved selected plan:", planData);
@@ -3056,17 +3056,17 @@ function initFlowInput(container) {
   }
 
   // Plan frequency selection
-  let planFreqButtons = container.querySelectorAll('[data-flow-account-frequency]')
+  const planFreqButtons = container.querySelectorAll('[data-flow-account-frequency]')
   if (planFreqButtons.length) {
     planFreqButtons.forEach((button) => {
       button.addEventListener('click', function () {
         const planKey = 'user.signup.selectedPlan'
-        let planData = JSON.parse(localStorage.getItem(planKey)) || {}
-        let billingFrequency = button.getAttribute('data-flow-account-frequency')
-        let due = button.getAttribute('data-flow-account-due')
-        let monthly = button.getAttribute('data-flow-account-monthly')
-        let id = button.getAttribute(PLAN_ID_ATTRIBUTE)
-        let isMostPopular = button.hasAttribute('data-flow-popular')
+        const planData = JSON.parse(localStorage.getItem(planKey)) || {}
+        const billingFrequency = button.getAttribute('data-flow-account-frequency')
+        const due = button.getAttribute('data-flow-account-due')
+        const monthly = button.getAttribute('data-flow-account-monthly')
+        const id = button.getAttribute(PLAN_ID_ATTRIBUTE)
+        const isMostPopular = button.hasAttribute('data-flow-popular')
 
         planData.billingFrequency = billingFrequency
         planData.amount = due
@@ -3221,7 +3221,7 @@ function initFlowCheckoutSurveryInput(next) {
   }
 
   // Plan benefit for 'plus' only
-  let planBenefitPlus = container.querySelector('[data-c-plus-benefit]')
+  const planBenefitPlus = container.querySelector('[data-c-plus-benefit]')
   if (planBenefitPlus) {
     if (planData.type === 'plus') {
       gsap.set(planBenefitPlus, { display: 'flex' })
@@ -3594,7 +3594,7 @@ async function initStripe() {
     return
   }
 
-  var stripe = Stripe(STRIPE_KEY)
+  const stripe = Stripe(STRIPE_KEY)
 
   // Retrieve selected guide details
   const selectedGuide = JSON.parse(localStorage.getItem('user.signup.selectedGuide') ?? '{}')
@@ -4000,8 +4000,8 @@ barba.init({
       name: 'default',
       sync: false,
       leave(data) {
-        let nextName = data.next.namespace
-        let currentName = data.current.container.getAttribute('data-barba-namespace')
+        const nextName = data.next.namespace
+        const currentName = data.current.container.getAttribute('data-barba-namespace')
 
         const tl = gsap.timeline({
           onComplete: () => {
@@ -4028,8 +4028,8 @@ barba.init({
     {
       namespace: 'flow-default',
       afterEnter(data) {
-        let next = data.next.container
-        let name = data.next.namespace
+        const next = data.next.container
+        const name = data.next.namespace
         transitionIn(next, name)
         initGeneral(next)
       },
@@ -4037,8 +4037,8 @@ barba.init({
     {
       namespace: 'flow-membership', // Membership type selection
       afterEnter(data) {
-        let next = data.next.container
-        let name = data.next.namespace
+        const next = data.next.container
+        const name = data.next.namespace
         transitionIn(next, name)
         initGeneral(next)
         initFlowMembershipSelection(next)
@@ -4047,8 +4047,8 @@ barba.init({
     {
       namespace: 'flow-testimonials', // Testimonial Section
       afterEnter(data) {
-        let next = data.next.container
-        let name = data.next.namespace
+        const next = data.next.container
+        const name = data.next.namespace
         transitionIn(next, name)
         initGeneral(next)
         initMemberStories()
@@ -4057,8 +4057,8 @@ barba.init({
     {
       namespace: 'flow-pricing', // New pricing page
       afterEnter(data) {
-        let next = data.next.container
-        let name = data.next.namespace
+        const next = data.next.container
+        const name = data.next.namespace
         transitionIn(next, name)
         initGeneral(next)
         initFlowCheckoutSurveryInput(next)
@@ -4068,8 +4068,8 @@ barba.init({
     {
       namespace: 'flow-checkout',
       afterEnter(data) {
-        let next = data.next.container
-        let name = data.next.namespace
+        const next = data.next.container
+        const name = data.next.namespace
         transitionIn(next, name)
         initGeneral(next)
         initFlowCheckoutSurveryInput(next)
@@ -4088,8 +4088,8 @@ barba.init({
     {
       namespace: 'flow-checkout-pending',
       afterEnter(data) {
-        let next = data.next.container
-        let name = data.next.namespace
+        const next = data.next.container
+        const name = data.next.namespace
         transitionIn(next, name)
         initGeneral(next)
         initCheckoutPendingPage(next)
@@ -4098,8 +4098,8 @@ barba.init({
     {
       namespace: 'flow-guides', // Guide selection page
       afterEnter(data) {
-        let next = data.next.container
-        let name = data.next.namespace
+        const next = data.next.container
+        const name = data.next.namespace
         transitionIn(next, name)
         initGeneral(next)
       },
@@ -4107,8 +4107,8 @@ barba.init({
     {
       namespace: 'flow-steps', // Page prior to checkout
       afterEnter(data) {
-        let next = data.next.container
-        let name = data.next.namespace
+        const next = data.next.container
+        const name = data.next.namespace
         transitionIn(next, name)
         initGeneral(next)
         initFlowPreCheckoutSteps(next)
