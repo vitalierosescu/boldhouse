@@ -2253,7 +2253,7 @@ function initCta(container = document) {
   const trigger = container.querySelector('.section_cta')
 
   if (bg) {
-    gsap.matchMedia().add(MQ.tabletUp, () => {
+
       const tl = gsap.timeline({
         defaults: { ease: 'none' },
         scrollTrigger: {
@@ -2285,7 +2285,7 @@ function initCta(container = document) {
           stagger: { each: 0.04, from: 'end' },
         }
       )
-    })
+
   }
 }
 
