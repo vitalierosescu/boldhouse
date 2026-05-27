@@ -1681,7 +1681,8 @@ const initPerks = (container = document) => {
 const initParallax = (container = document) => {
   if (!container.querySelector('.parallax-parent')) return
 
-  container.querySelectorAll('.parallax-parent').forEach((parallaxParent) => {
+  gsap.matchMedia().add(MQ.tabletUp, () => {
+    container.querySelectorAll('.parallax-parent').forEach((parallaxParent) => {
     const parallaxImg = parallaxParent.querySelector('.parallax')
     if (!parallaxImg) return
 
@@ -1698,6 +1699,7 @@ const initParallax = (container = document) => {
       })
       .to(parallaxImg, { yPercent: 40 })
   })
+})
 }
 
 function initTextAnimations(container = document) {
@@ -2224,27 +2226,44 @@ function initMarqueeScrollDirection(container = document) {
 
 function initCta(container = document) {
   const bg = container.querySelector('.cta_bg')
+  const images = container.querySelectorAll('.cta_bg-img')
+  const trigger = container.querySelector('.section_cta')
 
   if (bg) {
     gsap.matchMedia().add(MQ.tabletUp, () => {
-      gsap.fromTo(
-        bg,
-        { width: '100%' },
+      const tl = gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger,
+          start: 'clamp(top 100%)',
+          end: 'bottom bottom',
+          scrub: true,
+        },
+      })
+
+      tl.fromTo(bg, { width: '100%' }, { width: '100vw' })
+
+      const tlImages = gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger,
+          start: 'clamp(top 60%)',
+          end: 'bottom bottom',
+          scrub: true,
+        },
+      })
+
+      tlImages.fromTo(
+        images,
+        { opacity: 1 },
         {
-          width: '100vw',
-          ease: 'none',
-          scrollTrigger: {
-            trigger: '.section_cta',
-            start: 'clamp(top 100%)',
-            end: 'bottom bottom',
-            scrub: true,
-          },
+          opacity: 0,
+          duration: 0.05,
+          stagger: { each: 0.04, from: 'end' },
         }
       )
     })
   }
-
-
 }
 
 function initReviews(container = document) {
@@ -2786,9 +2805,12 @@ function initTabSystem(container = document) {
     let activeVisual = null
     let isAnimating = false
     let progressBarTween = null // to stop/start the progress bar
+    let sectionInView = !autoplay // when no autoplay, gating is irrelevant
+    let activeIndex = 0
 
     function startProgressBar(index) {
       if (progressBarTween) progressBarTween.kill()
+      if (!sectionInView) return // don't cycle while section is offscreen
       const bar = contentItems[index].querySelector('[data-tabs="item-progress"]')
       if (!bar) return
 
@@ -2831,13 +2853,13 @@ function initTabSystem(container = document) {
       const outgoingSquare = outgoingContent?.querySelector('.content-item_square')
       const incomingSquare = squares[index]
       if (outgoingSquare && incomingSquare) {
-        gsap.set([outgoingSquare, incomingSquare], { clearProps: 'x,y' })
+        gsap.set([outgoingSquare, incomingSquare], { clearProps: 'x,y,rotateZ' })
         const oldRect = outgoingSquare.getBoundingClientRect()
         const newRect = incomingSquare.getBoundingClientRect()
         gsap.fromTo(
           incomingSquare,
-          { x: oldRect.left - newRect.left, y: oldRect.top - newRect.top },
-          { x: 0, y: 0, duration: 0.65, ease: 'power3' },
+          { x: oldRect.left - newRect.left, y: oldRect.top - newRect.top, rotateZ: 0 },
+          { x: 0, y: 0, rotateZ: 360, duration: 0.65, ease: 'power3.out' },
         )
       }
 
@@ -2851,8 +2873,9 @@ function initTabSystem(container = document) {
         onComplete: () => {
           activeContent = incomingContent
           activeVisual = incomingVisual
+          activeIndex = index
           isAnimating = false
-          if (autoplay) startProgressBar(index) // Start autoplay bar here
+          if (autoplay) startProgressBar(index) // gated by sectionInView inside
         },
       })
 
@@ -2870,10 +2893,32 @@ function initTabSystem(container = document) {
         .set(incomingBar, { scaleX: 0, transformOrigin: 'left center' }, 0)
     }
 
-    // on page load, set first to active
-    // idea: you could wrap this in a scrollTrigger
-    // so it will only start once a user reaches this section
+    // on page load, set first to active. Autoplay cycling is gated on
+    // sectionInView (set by the ScrollTrigger below) so the section's height
+    // doesn't keep changing while the user is scrolled away from it.
     switchTab(0)
+
+    if (autoplay && window.ScrollTrigger) {
+      const setInView = (inView) => {
+        if (sectionInView === inView) return
+        sectionInView = inView
+        if (inView) {
+          if (!isAnimating) startProgressBar(activeIndex)
+        } else if (progressBarTween) {
+          progressBarTween.kill()
+          progressBarTween = null
+        }
+      }
+      const st = window.ScrollTrigger.create({
+        trigger: wrapper,
+        start: 'top bottom',
+        end: 'bottom top',
+        onToggle: (self) => setInView(self.isActive),
+        onRefresh: (self) => setInView(self.isActive),
+      })
+      // Seed after current frame in case the section is already in view at load.
+      requestAnimationFrame(() => setInView(st.isActive))
+    }
 
     // switch tabs on click
     contentItems.forEach((item, i) =>
@@ -2962,8 +3007,6 @@ const initClubGallery = (container = document) => {
     tl.to(imgs, { x: '-7%' }, 0)
   })
 }
-
-gsap.registerPlugin(ScrollTrigger);
 
 function initStackingCardsParallax() {
   const cards = document.querySelectorAll("[data-stacking-cards-item]");
