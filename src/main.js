@@ -1556,7 +1556,7 @@ const initPerks = (container = document) => {
       const { heading, tooltip, media } = entry
 
       if (heading) {
-        heading.style.color = !anyActive || active ? 'black' : '#6b6b6b'
+        heading.style.color = !anyActive || active ? 'black' : '#C1C0BE'
         heading.style.zIndex = active ? '2' : ''
       }
       if (tooltip) {
@@ -3048,7 +3048,7 @@ function initStackingCardsParallax() {
       }
     })
 
-    tl.fromTo(previousCard, { y: '0vh', scale: 1 }, { y: '-2vh', scale: 0.98 })
+    tl.fromTo(previousCard, { y: '0vh', scale: 1 }, { y: '-10vh', scale: 0.95 })
       .fromTo(previousCardFade, { opacity: 0 }, { opacity: .6 }, "<")
     // .fromTo(previousCardImage, { rotate: 0, yPercent: 0 }, { rotate: -5, yPercent: -25 }, "<")
   });

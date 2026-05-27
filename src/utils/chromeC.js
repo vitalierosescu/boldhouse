@@ -1,5 +1,68 @@
 import * as THREE from 'three'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+
+// Inline OBJ parser. Replaces three/examples/jsm/loaders/OBJLoader because
+// that file has top-level `new Vector3()` calls — bundling it crashed any
+// page that doesn't load the Three.js CDN script (i.e. every page except home).
+function parseOBJ(text) {
+  const verts = []
+  const norms = []
+  const tex = []
+  const finalPos = []
+  const finalNorm = []
+  const finalUV = []
+
+  const lines = text.split('\n')
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (!line || line[0] === '#') continue
+    const parts = line.split(/\s+/)
+    const type = parts[0]
+    if (type === 'v') {
+      verts.push(+parts[1], +parts[2], +parts[3])
+    } else if (type === 'vn') {
+      norms.push(+parts[1], +parts[2], +parts[3])
+    } else if (type === 'vt') {
+      tex.push(+parts[1], +parts[2])
+    } else if (type === 'f') {
+      const refs = parts.slice(1).map((p) => p.split('/'))
+      for (let i = 1; i < refs.length - 1; i++) {
+        for (const r of [refs[0], refs[i], refs[i + 1]]) {
+          const vi = (+r[0] - 1) * 3
+          finalPos.push(verts[vi], verts[vi + 1], verts[vi + 2])
+          if (r[1]) {
+            const ti = (+r[1] - 1) * 2
+            finalUV.push(tex[ti] || 0, tex[ti + 1] || 0)
+          }
+          if (r[2]) {
+            const ni = (+r[2] - 1) * 3
+            finalNorm.push(norms[ni], norms[ni + 1], norms[ni + 2])
+          }
+        }
+      }
+    }
+  }
+
+  const geom = new THREE.BufferGeometry()
+  geom.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(finalPos, 3)
+  )
+  if (finalNorm.length) {
+    geom.setAttribute(
+      'normal',
+      new THREE.Float32BufferAttribute(finalNorm, 3)
+    )
+  } else {
+    geom.computeVertexNormals()
+  }
+  if (finalUV.length) {
+    geom.setAttribute('uv', new THREE.Float32BufferAttribute(finalUV, 2))
+  }
+
+  const group = new THREE.Group()
+  group.add(new THREE.Mesh(geom, new THREE.MeshStandardMaterial()))
+  return group
+}
 
 const IDLE_SPEED = 0.35
 const VELOCITY_FACTOR = 0.008
@@ -100,19 +163,19 @@ export function initChromeC(container = document) {
     (err) => console.warn('[chromeC] env map load failed', err)
   )
 
-  new OBJLoader().load(
-    objUrl,
-    (obj) => {
-      mesh = obj
+  fetch(objUrl)
+    .then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.text()
+    })
+    .then((text) => {
+      mesh = parseOBJ(text)
       mesh.rotation.set(MODEL_TILT_X, MODEL_TILT_Y, MODEL_TILT_Z)
       centerAndFrame(mesh, camera)
-      if (envMap) applyChromeMaterial(mesh, envMap)
-      else applyChromeMaterial(mesh, null)
+      applyChromeMaterial(mesh, envMap || null)
       pivot.add(mesh)
-    },
-    undefined,
-    (err) => console.warn('[chromeC] OBJ load failed', err)
-  )
+    })
+    .catch((err) => console.warn('[chromeC] OBJ load failed', err))
 
   function applyChromeMaterial(root, env) {
     root.traverse((child) => {
