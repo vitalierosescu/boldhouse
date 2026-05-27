@@ -2295,7 +2295,7 @@ function initReviews(container = document) {
   const trigger = container.querySelector('[data-reviews-section]')
 
   if (svg) {
-    gsap.matchMedia().add(MQ.tabletUp, () => {
+
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: trigger,
@@ -2316,9 +2316,7 @@ function initReviews(container = document) {
       )
       .fromTo(monthItem[0], { y: '30%' }, { y: '-120%', }, 0)
       .fromTo(monthItem[1], { y: '-120%' }, { y: '30%', }, 0)
-    });
   }
-
 
 }
 
