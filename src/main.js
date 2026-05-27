@@ -2387,13 +2387,16 @@ const initHomeHeroParallax = (container = document) => {
   const heroImg = container.querySelector('[data-hero-img]')
   if (!hero) return
 
-  // const mm = gsap.matchMedia()
-  // mm.add(MQ.tabletUp, () => {
-    const animateHero = () => {
+  const mm = gsap.matchMedia()
+  mm.add(
+    {
+      isDesktop: MQ.tabletUp,
+      isMobile: MQ.mobileLandscapeDown,
+    },
+    (ctx) => {
+      const { isDesktop } = ctx.conditions
       const tl = gsap.timeline({
-        defaults: {
-          ease: 'none',
-        },
+        defaults: { ease: 'none' },
         scrollTrigger: {
           trigger: '[data-hero-trigger]',
           start: 'clamp(top 100%)',
@@ -2402,27 +2405,12 @@ const initHomeHeroParallax = (container = document) => {
         },
       })
 
-      tl.to(
-        heroImg,
-        {
-          y: '60vh',
-          // filter: 'brightness(80%)',
-          ease: 'none',
-        },
-        0
-      )
-      tl.to('.section_h-hero-2', { y: '30vh', ease: 'none' }, 0)
-
-      // gsap.set(heroImg, { filter: 'brightness(100%)' })
+      if (isDesktop) tl.to(heroImg, { y: '60vh' }, 0)
+      tl.to('.section_h-hero-2', { y: '30vh' }, 0)
     }
+  )
 
-    animateHero()
-  // })
-  // Remove animations on tablet and down
-  // mm.add(MQ.tabletDown, () => {
-  //   gsap.set(heroImg, { clearProps: 'all' })
-  //   ScrollTrigger.refresh()
-  // })
+  registerCleanup(() => mm.revert())
 }
 
 function initHomeHero(container = document) {
