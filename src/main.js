@@ -2390,11 +2390,11 @@ const initHomeHeroParallax = (container = document) => {
   const mm = gsap.matchMedia()
   mm.add(
     {
-      isDesktop: MQ.tabletUp,
-      isMobile: MQ.mobileLandscapeDown,
+      isTabletUp: MQ.tabletUp,
+      isMobileLandscapeDown: MQ.mobileLandscapeDown,
     },
     (ctx) => {
-      const { isDesktop } = ctx.conditions
+      const { isTabletUp } = ctx.conditions
       const tl = gsap.timeline({
         defaults: { ease: 'none' },
         scrollTrigger: {
@@ -2405,7 +2405,7 @@ const initHomeHeroParallax = (container = document) => {
         },
       })
 
-      if (isDesktop) tl.to(heroImg, { y: '60vh' }, 0)
+      if (isTabletUp) tl.to(heroImg, { y: '60vh' }, 0)
       tl.to('.section_h-hero-2', { y: '30vh' }, 0)
     }
   )
