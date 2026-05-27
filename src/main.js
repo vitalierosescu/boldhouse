@@ -303,7 +303,7 @@ barba.hooks.afterEnter((data) => {
   initAfterEnterFunctions(data.next.container)
 
   // Settle
-  if (hasLenis) {
+  if (window.lenis) {
     window.lenis.resize()
     window.lenis.start()
   }
@@ -400,9 +400,19 @@ function initNavThemeTriggers(container = document) {
   })
 }
 
+// Lenis is disabled on mobile landscape & down — native scroll handles
+// momentum + URL bar collapse better on touch devices.
+const lenisMQ = window.matchMedia(MQ.mobileLandscapeDown)
+const lenisAllowed = () => !lenisMQ.matches
+
+function lenisRaf(time) {
+  window.lenis?.raf(time * 1000)
+}
+
 function initLenis() {
   if (window.lenis) return // already created
   if (!hasLenis) return
+  if (!lenisAllowed()) return
 
   window.lenis = new Lenis({
     lerp: 0.15,
@@ -413,10 +423,23 @@ function initLenis() {
     window.lenis.on('scroll', ScrollTrigger.update)
   }
 
-  gsap.ticker.add((time) => {
-    window.lenis.raf(time * 1000)
-  })
+  gsap.ticker.add(lenisRaf)
 }
+
+function destroyLenis() {
+  if (!window.lenis) return
+  gsap.ticker.remove(lenisRaf)
+  window.lenis.destroy()
+  window.lenis = null
+  if (hasScrollTrigger) ScrollTrigger.refresh()
+}
+
+const onLenisMQChange = (e) => {
+  if (e.matches) destroyLenis()
+  else initLenis()
+}
+lenisMQ.addEventListener?.('change', onLenisMQChange)
+lenisMQ.addListener?.(onLenisMQChange)
 
 // Pause animation work while the tab is hidden. Browsers throttle RAF to ~1fps
 // in background tabs; without this, GSAP/Lenis try to "catch up" the accumulated
@@ -453,7 +476,7 @@ function resetPage(container) {
   window.scrollTo(0, 0)
   gsap.set(container, { clearProps: 'position,top,left,right' })
 
-  if (hasLenis) {
+  if (window.lenis) {
     window.lenis.resize()
     window.lenis.start()
   }
