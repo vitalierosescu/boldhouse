@@ -2387,8 +2387,8 @@ const initHomeHeroParallax = (container = document) => {
   const heroImg = container.querySelector('[data-hero-img]')
   if (!hero) return
 
-  const mm = gsap.matchMedia()
-  mm.add(MQ.tabletUp, () => {
+  // const mm = gsap.matchMedia()
+  // mm.add(MQ.tabletUp, () => {
     const animateHero = () => {
       const tl = gsap.timeline({
         defaults: {
@@ -2417,12 +2417,12 @@ const initHomeHeroParallax = (container = document) => {
     }
 
     animateHero()
-  })
+  // })
   // Remove animations on tablet and down
-  mm.add(MQ.tabletDown, () => {
-    gsap.set(heroImg, { clearProps: 'all' })
-    ScrollTrigger.refresh()
-  })
+  // mm.add(MQ.tabletDown, () => {
+  //   gsap.set(heroImg, { clearProps: 'all' })
+  //   ScrollTrigger.refresh()
+  // })
 }
 
 function initHomeHero(container = document) {
