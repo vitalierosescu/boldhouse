@@ -400,6 +400,105 @@ function initNavThemeTriggers(container = document) {
   })
 }
 
+// Resolves once T.Ricks' Theme Collector has populated window.colorThemes.
+// First load: waits for the `colorThemesReady` event. Subsequent Barba navs:
+// localStorage cache means themes are already in memory, so resolves immediately.
+function whenColorThemesReady() {
+  return new Promise((resolve) => {
+    if (
+      window.colorThemes?.themes &&
+      Object.keys(window.colorThemes.themes).length > 0
+    ) {
+      resolve()
+      return
+    }
+    document.addEventListener('colorThemesReady', () => resolve(), {
+      once: true,
+    })
+  })
+}
+
+// Cached on first build so Barba navs don't re-snapshot a possibly-tweened
+// page-wrap and capture the wrong resting state.
+let restingThemeVarsCache = null
+
+function buildRestingThemeVars(pageWrap) {
+  if (restingThemeVarsCache) return restingThemeVarsCache
+  const themes = window.colorThemes?.themes
+  if (!themes) return null
+
+  const restingVars = {}
+  const pageWrapStyle = getComputedStyle(pageWrap)
+  Object.values(themes).forEach((theme) => {
+    // Theme map is either flat (no brand classes) or wrapped in { brands: {...} }.
+    const flatVars = theme?.brands ? Object.values(theme.brands)[0] : theme
+    if (!flatVars) return
+    Object.keys(flatVars).forEach((key) => {
+      if (!key.startsWith('--')) return
+      if (key in restingVars) return
+      restingVars[key] = pageWrapStyle.getPropertyValue(key).trim()
+    })
+  })
+
+  restingThemeVarsCache = restingVars
+  return restingVars
+}
+
+function initSectionThemeTriggers(container = document) {
+  if (!hasScrollTrigger) return
+
+  const pageWrap = document.querySelector('.page-wrap')
+  if (!pageWrap) return
+
+  const sections = container.querySelectorAll('[data-theme-page-to]')
+  if (!sections.length) return
+
+  const triggers = []
+  let cancelled = false
+  let restingVars = null
+
+  whenColorThemesReady().then(() => {
+    if (cancelled || !window.colorThemes?.getTheme) return
+
+    restingVars = buildRestingThemeVars(pageWrap)
+
+    sections.forEach((section) => {
+      const themeName = section.dataset.themePageTo
+      if (!themeName) return
+
+      const themeVars = window.colorThemes.getTheme(themeName)
+      if (!themeVars || Object.keys(themeVars).length === 0) return
+
+      const st = ScrollTrigger.create({
+        trigger: section,
+        start: 'top center',
+        end: 'bottom center',
+        onToggle: ({ isActive }) => {
+          const target = isActive ? themeVars : restingVars
+          if (!target) return
+          gsap.to(pageWrap, {
+            ...target,
+            duration: 0.5,
+            ease: 'boldhouse',
+          })
+        },
+      })
+      triggers.push(st)
+    })
+  })
+
+  registerCleanup(() => {
+    cancelled = true
+    triggers.forEach((st) => st.kill())
+    gsap.killTweensOf(pageWrap)
+    // Strip inline theme vars so the next page starts from the CSS cascade,
+    // not from whatever color the last tween landed on.
+    if (restingVars) {
+      gsap.set(pageWrap, { clearProps: Object.keys(restingVars).join(',') })
+    }
+  })
+}
+
 // Lenis is disabled on mobile landscape & down — native scroll handles
 // momentum + URL bar collapse better on touch devices.
 const lenisMQ = window.matchMedia(MQ.mobileLandscapeDown)
@@ -2320,6 +2419,73 @@ function initReviews(container = document) {
 
 }
 
+function initReviews2(container = document) {
+  const section = container.querySelector('[data-reviews-section]')
+  const track = container.querySelector('[data-reviews-track]')
+  const items = container.querySelectorAll('[data-reviews-item]')
+  const svg = container.querySelectorAll('.m-slider_duration-svg')
+  const monthItem = container.querySelectorAll('.m-slider_duration-wrap')
+
+  if (!section || !track || !items.length) return
+
+  const mm = gsap.matchMedia()
+  mm.add(MQ.tabletUp, () => {
+    const getScrollAmount = () => -(track.scrollWidth - window.innerWidth) - 200
+
+    // Wave: cosine-based, screen-space. Y stays in [0, amplitude] so
+    // items only drift DOWN from natural position — never up, never
+    // overlapping the title above. Bottom overflow is fine.
+    // Anchored so item 0 starts at the wave peak (y = 0).
+    const amplitude = 120     // px max downward drift
+    const wavelength = 900    // px between wave peaks
+
+    let phaseAnchorX = 0
+    const captureAnchor = () => {
+      const bounds = items[0].getBoundingClientRect()
+      const trackX = gsap.getProperty(track, 'x') || 0
+      phaseAnchorX = bounds.left + bounds.width / 2 - trackX
+    }
+
+    const applyWave = () => {
+      items.forEach((item) => {
+        const bounds = item.getBoundingClientRect()
+        const centerX = bounds.left + bounds.width / 2
+        const phase = ((centerX - phaseAnchorX) / wavelength) * Math.PI * 2
+        const y = (1 - Math.cos(phase)) * 0.5 * amplitude
+        gsap.set(item, { y })
+      })
+    }
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: 'top 90%',
+        end: 'bottom 5%',
+        scrub: 1,
+        invalidateOnRefresh: true,
+        onUpdate: applyWave,
+        onRefresh: () => { captureAnchor(); applyWave() },
+      },
+      defaults: { ease: 'none' }
+    })
+
+    tl.fromTo(track, { x: '100px' }, { x: getScrollAmount }, 0)
+
+    captureAnchor()
+    applyWave()
+
+    if (svg.length) {
+      tl.fromTo(
+        svg,
+        { rotateZ: '100deg', scale: 1.5 },
+        { rotateZ: '360deg', scale: 1 },
+        0
+      )
+    }
+    if (monthItem[0]) tl.fromTo(monthItem[0], { y: '-120%' }, { y: '30%' }, 0)
+    if (monthItem[1]) tl.fromTo(monthItem[1], { y: '30%' }, { y: '-120%' }, 0)
+  })
+}
 
 
 // =================== Before Enter JS
@@ -2364,6 +2530,7 @@ function initGlobal(container) {
   initFaq(container)
   initMomentumBasedHover(container)
   if (has('[data-nav-theme-to]')) initNavThemeTriggers(container)
+  if (has('[data-theme-page-to]')) initSectionThemeTriggers(container)
   document.fonts.ready.then(() => initTextAnimations(container))
 
   initEventSlider(container)
@@ -2372,7 +2539,7 @@ function initGlobal(container) {
   initMarqueeScrollDirection(container)
 
   initCta(container)
-  initReviews(container)
+  initReviews2(container)
   initClippingImageTrail(container)
 }
 
