@@ -3,16 +3,8 @@ import { MQ } from './utils/breakpoints.js'
 import { splitReveal } from './utils/splitReveal.js'
 import { initChromeC } from './utils/chromeC.js'
 
-// Dev fallback: expose npm gsap if the CDN copy isn't on `window` yet.
-// Webflow preview/production always loads gsap via <script src>, so this
-// branch is dev-only.
 if (!window.gsap) window.gsap = gsap
 
-// Register on BOTH instances. In production they're the same (gsap is externalized
-// to window.gsap). In dev, the bundled npm `gsap` and the CDN `window.gsap` are
-// separate instances - skipping the bundled one causes "Missing plugin?" warnings.
-// Use window.* for all CDN globals — property access returns undefined (no throw),
-// bare variable references throw ReferenceError if the deferred script hasn't run yet.
 const _plugins = [
   window.ScrollTrigger,
   window.CustomEase,
@@ -2432,12 +2424,8 @@ function initReviews2(container = document) {
   mm.add(MQ.tabletUp, () => {
     const getScrollAmount = () => -(track.scrollWidth - window.innerWidth) - 200
 
-    // Wave: cosine-based, screen-space. Y stays in [0, amplitude] so
-    // items only drift DOWN from natural position — never up, never
-    // overlapping the title above. Bottom overflow is fine.
-    // Anchored so item 0 starts at the wave peak (y = 0).
-    const amplitude = 120     // px max downward drift
-    const wavelength = 900    // px between wave peaks
+    const amplitude = 120     
+    const wavelength = 900    
 
     let phaseAnchorX = 0
     const captureAnchor = () => {
@@ -2463,30 +2451,201 @@ function initReviews2(container = document) {
         end: 'bottom 5%',
         scrub: 1,
         invalidateOnRefresh: true,
-        onUpdate: applyWave,
-        onRefresh: () => { captureAnchor(); applyWave() },
+        //onUpdate: applyWave,
+        //onRefresh: () => { captureAnchor(); applyWave() },
       },
       defaults: { ease: 'none' }
     })
 
     tl.fromTo(track, { x: '100px' }, { x: getScrollAmount }, 0)
 
-    captureAnchor()
-    applyWave()
+    //captureAnchor()
+    //applyWave()
 
     if (svg.length) {
-      tl.fromTo(
-        svg,
-        { rotateZ: '100deg', scale: 1.5 },
-        { rotateZ: '360deg', scale: 1 },
-        0
-      )
+      gsap.set(svg, { rotateZ: '0deg', scale: 1.5 })
+      gsap.to(svg, {
+        rotateZ: '120deg',
+        stagger: .2,
+        scale: 1,
+        duration: 1,
+        ease: 'boldhouse',
+        scrollTrigger: {
+          trigger: section,
+          start: 'top 80%',
+        },
+      })
     }
-    if (monthItem[0]) tl.fromTo(monthItem[0], { y: '-120%' }, { y: '30%' }, 0)
-    if (monthItem[1]) tl.fromTo(monthItem[1], { y: '30%' }, { y: '-120%' }, 0)
+    // if (monthItem[0]) tl.fromTo(monthItem[0], { y: '-120%' }, { y: '30%' }, 0)
+    // if (monthItem[1]) tl.fromTo(monthItem[1], { y: '30%' }, { y: '-120%' }, 0)
   })
 }
 
+function initPriceCards(next = document) {
+  ScrollTrigger.refresh();
+  let wrap = next.querySelector("[data-pricing-section]");
+
+  if (!wrap) {
+    return;
+  }
+
+  if (wrap.querySelector("[data-price-status]")) {
+    const buttons = wrap.querySelectorAll("[data-price-toggle]")
+    const row = wrap.querySelector("[data-price-status]")
+
+    buttons.forEach(button => {
+      const type = button.getAttribute("data-price-toggle")
+      button.addEventListener("click", () => {
+        if (row.getAttribute("data-price-status") === type) return
+        row.setAttribute("data-price-status", type)
+        buttons.forEach(btn => btn.classList.remove("is--active"))
+        button.classList.add("is--active")
+      })
+    })
+
+  } else {
+    let left = wrap.querySelector(".p-card.is--left");
+    let right = wrap.querySelector(".p-card.is--right");
+    let center = wrap.querySelector(".p-card.is--center");
+    let anim = wrap.querySelector("[data-lottie]");
+    let cards = wrap.querySelectorAll(".p-card");
+    let sub = wrap.querySelectorAll(".p-card__sub");
+
+    let animation = lottie.loadAnimation({
+      container: anim,
+      renderer: "svg",
+      loop: false,
+      autoplay: false,
+      path: anim.getAttribute("data-lottie-path"),
+    });
+
+    gsap
+      .timeline({
+        scrollTrigger: {
+          trigger: wrap,
+          start: "top bottom",
+          toggleActions: "play none none reverse",
+        },
+        onReverseComplete: () => {
+          animation.goToAndStop(0, true);
+        },
+      })
+      .from(left, {
+        xPercent: 80,
+        yPercent: 30,
+        rotate: 6,
+        duration: 0.8,
+        ease: "back.out(1.8)",
+      })
+      .from(
+        right,
+        {
+          xPercent: -80,
+          yPercent: 30,
+          rotate: -6,
+          duration: 0.8,
+          ease: "back.out(1.8)",
+        },
+        0
+      )
+      .from(
+        center,
+        {
+          yPercent: 10,
+          scale: 0.85,
+          duration: 0.8,
+          ease: "back.out(1.5)",
+          onStart: () => {
+            gsap.delayedCall(0.5, () => {
+              animation.play();
+            });
+          },
+        },
+        0
+      );
+
+    // HOVERING
+    cards.forEach((card) => {
+      card.addEventListener("mouseenter", () => {
+        cards.forEach((c) => c.classList.remove("is--active"));
+        card.classList.add("is--active");
+        gsap.to(card, {
+          scale: prefersReducedMotion() ? 1 : 1.1,
+          duration: 0.3,
+          ease: "back.out(1.8)",
+          overwrite: "auto",
+        });
+      });
+
+      card.addEventListener("mouseleave", () => {
+        card.classList.remove("is--active");
+        center.classList.add("is--active");
+        gsap.to(card, {
+          scale: 1,
+          duration: 0.3,
+          ease: "back.out(1.5)",
+          overwrite: "auto",
+        });
+      });
+    });
+
+    // PRICE CHANGE
+    const solo = next.querySelector("[data-price-solo]");
+    const joint = next.querySelector("[data-price-joint]");
+    const toggleTl = gsap.timeline({ paused: true });
+    toggleTl
+      .to(".p-card__heading", {
+        y: "-0.9em",
+        duration: 0.5,
+        ease: "back.inOut(2)",
+      })
+      .to(
+        ".p-card__eyebrow .eyebrow",
+        {
+          yPercent: -100,
+          duration: 0.5,
+          ease: "back.inOut(2)",
+        },
+        0
+      )
+      .to(
+        ".p-card__sign.offset",
+        {
+          left: "0em",
+          duration: 0.5,
+          ease: "back.inOut(2)",
+        },
+        0
+      )
+      .to(
+        sub,
+        {
+          x: "0em",
+          duration: 0.5,
+          ease: "back.inOut(2)",
+        },
+        0
+      );
+
+    solo.addEventListener("click", () => {
+      if (!solo.classList.contains("is--active")) {
+        joint.classList.remove("is--active");
+        solo.classList.add("is--active");
+        toggleTl.reverse();
+      }
+    });
+
+    joint.addEventListener("click", () => {
+      if (!joint.classList.contains("is--active")) {
+        solo.classList.remove("is--active");
+        joint.classList.add("is--active");
+        toggleTl.play();
+      }
+    });
+    wrap = null;
+  }
+
+}
 
 // =================== Before Enter JS
 
@@ -2541,6 +2700,7 @@ function initGlobal(container) {
   initCta(container)
   initReviews2(container)
   initClippingImageTrail(container)
+  initPriceCards(container)
 }
 
 // =================== HOME page
@@ -3106,6 +3266,182 @@ function initTabSystem(container = document) {
   })
 }
 
+
+function initDepthTiles(con = document) {
+  con.querySelectorAll("[data-depth-tiles-init]").forEach((container) => {
+    const list = container.querySelector("[data-depth-tiles-list]");
+    const tiles = container.querySelectorAll("[data-depth-tiles-item]");
+    const tileCount = tiles.length;
+    if (tileCount < 2) return;
+
+    const xMultiplier = 0.65;
+    const backScale = 0.5;
+    const backOpacity = 1;
+    const backDarkness = 1;
+    const sideRotateY = 5;
+    const perspective = 75;
+
+    const moveDuration = 1.5;
+    const startDelay = 0.5;
+    const pauseDuration = 0.125;
+
+    const state = { progress: 0 };
+
+    let isActive = false;
+    let isHovering = false;
+    let hasStarted = false;
+    let stepTimeline;
+    let delayedCall;
+    let startDelayedCall;
+    let activeTileIndex = -1;
+
+    gsap.set(list, { perspective: `${perspective}em` });
+    gsap.set(tiles, {
+      transformStyle: "preserve-3d",
+      transformPerspective: perspective * 16
+    });
+
+    function getRelativeIndex(index) {
+      let relative = index - state.progress;
+      relative = ((relative + tileCount / 2) % tileCount + tileCount) % tileCount - tileCount / 2;
+      return gsap.utils.clamp(-2, 2, relative);
+    }
+
+    function getActiveIndex() {
+      return ((Math.round(state.progress) % tileCount) + tileCount) % tileCount;
+    }
+
+    function updateTileStatus() {
+      const currentActiveIndex = getActiveIndex();
+      if (currentActiveIndex === activeTileIndex) return;
+
+      activeTileIndex = currentActiveIndex;
+
+      tiles.forEach((tile, index) => {
+        tile.setAttribute("data-depth-tiles-item-status", index === activeTileIndex ? "active" : "not-active");
+      });
+    }
+
+    function renderDepth() {
+      const tileWidth = tiles[0].offsetWidth;
+      const radiusX = tileWidth * xMultiplier;
+
+      updateTileStatus();
+
+      tiles.forEach((tile, index) => {
+        const relative = getRelativeIndex(index);
+        const angle = (relative / 2) * Math.PI;
+
+        const orbitX = Math.sin(angle) * radiusX;
+        const orbitDepth = (Math.cos(angle) + 1) / 2;
+
+        const x = relative <= -2 || relative >= 2 ? 0 : orbitX;
+        const scale = gsap.utils.interpolate(backScale, 1, orbitDepth);
+        const opacity = gsap.utils.interpolate(backOpacity, 1, orbitDepth);
+        const brightness = gsap.utils.interpolate(backDarkness, 1, orbitDepth);
+        const rotateY = Math.sin(angle) * -sideRotateY;
+        const zIndex = Math.round(gsap.utils.interpolate(1, 1000, orbitDepth));
+
+        gsap.set(tile, {
+          x,
+          scale,
+          opacity,
+          rotateY,
+          filter: `brightness(${brightness})`,
+          zIndex
+        });
+      });
+    }
+
+    function goToNextTile() {
+      if (!isActive || isHovering) return;
+
+      stepTimeline = gsap.timeline({
+        paused: true,
+        onComplete: () => {
+          if (isActive && !isHovering) {
+            delayedCall = gsap.delayedCall(pauseDuration, goToNextTile);
+          }
+        }
+      });
+
+      stepTimeline.to(state, {
+        progress: state.progress + 1,
+        duration: moveDuration,
+        ease: "power4.inOut",
+        onUpdate: renderDepth
+      });
+
+      stepTimeline.play();
+    }
+
+    function pauseDepth() {
+      isActive = false;
+      if (stepTimeline) stepTimeline.pause();
+      if (delayedCall) delayedCall.pause();
+      if (startDelayedCall) startDelayedCall.pause();
+    }
+
+    function playDepth() {
+      isActive = true;
+      if (isHovering) return;
+
+      if (!hasStarted) {
+        hasStarted = true;
+        startDelayedCall = gsap.delayedCall(startDelay, goToNextTile);
+        return;
+      }
+
+      if (stepTimeline && stepTimeline.progress() < 1) {
+        stepTimeline.play();
+      } else {
+        goToNextTile();
+      }
+    }
+
+    function handleHoverStart() {
+      isHovering = true;
+      if (delayedCall) delayedCall.pause();
+      if (startDelayedCall) startDelayedCall.pause();
+    }
+
+    function handleHoverEnd() {
+      isHovering = false;
+      if (!isActive) return;
+
+      if (!hasStarted) {
+        playDepth();
+        return;
+      }
+
+      if (stepTimeline && stepTimeline.progress() < 1) {
+        stepTimeline.play();
+      } else {
+        goToNextTile();
+      }
+    }
+
+    list.addEventListener("pointerover", (event) => {
+      if (!event.target.closest("[data-depth-tiles-item]")) return;
+      handleHoverStart();
+    });
+
+    list.addEventListener("pointerleave", () => {
+      handleHoverEnd();
+    });
+
+    renderDepth();
+
+    ScrollTrigger.create({
+      trigger: container,
+      start: "top bottom",
+      end: "bottom top",
+      onToggle: (self) => self.isActive ? playDepth() : pauseDepth()
+    });
+  });
+}
+
+
 function initHomePage(container) {
   initHomeHeroParallax(container)
   initAcceleratingGlobe(container)
@@ -3116,6 +3452,7 @@ function initHomePage(container) {
 
   const chromeCTeardown = initChromeC(container)
   if (chromeCTeardown) registerCleanup(chromeCTeardown)
+      initDepthTiles(container)
 }
 
 // ================= CLUB page (was pages/club.js)
