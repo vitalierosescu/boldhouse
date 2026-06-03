@@ -814,10 +814,7 @@ function initButtonHover(container = document) {
   })
 }
 
-function initMegaNavDirectionalHover() {
-  // Nav lives outside the Barba container, so this function is called on every
-  // page transition with the same DOM. Bail if we've already bound listeners
-  // to avoid stacking duplicate handlers on each enter/leave.
+function initMegaNav() {
   const menuWrap = document.querySelector('[data-menu-wrap]')
   if (!menuWrap || menuWrap._megaNavInit) return
   menuWrap._megaNavInit = true
@@ -1446,6 +1443,23 @@ function initMegaNavDirectionalHover() {
 
   // INIT
   state.isMobile ? setupMobile() : resetDesktop()
+}
+
+const initNav = () => {
+  const navLogo = document.querySelector('.mega-nav__bar-logo')
+
+    gsap
+      .timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger: document.body,
+          start: 'clamp(top bottom)',
+          end: 'top -400px',
+          scrub: true,
+          invalidateOnRefresh: true,
+        },
+      })
+      .to(navLogo, { width: '9rem' })
 }
 
 function initStackingStickyCardsBounce(container = document) {
@@ -2681,7 +2695,8 @@ function initGlobal(container) {
     document.fonts.ready.then(() => initHighlightMarkerTextReveal(container))
   }
   if (has('[data-button-text]')) initButtonHover(container)
-  initMegaNavDirectionalHover()
+  initMegaNav()
+initNav(container)
   if (has('[data-stacking-cards-init]')) initStackingStickyCardsBounce(container)
   initPerks(container)
   initParallax(container)
@@ -3558,10 +3573,47 @@ function initStackingCardsParallax() {
   });
 }
 
+const initPillarsAnimation = (container = document) => {
+  const mm = gsap.matchMedia();
+
+  mm.add(MQ.tabletUp, () => {
+      const triggerElement = container.querySelector('.pillars_sticky-parent')
+      if (!triggerElement) return
+
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: triggerElement,
+            start: "top top",
+            end: "100% bottom",
+            scrub: 1,
+          },
+        })
+        .fromTo(".pillars_sticky-heading", { scale: 0.55, y: '50vh' }, { scale: 1, y: '0vh' })
+        .fromTo(".pillars_title", { scale: 1.6 }, { scale: 1 }, 0.0);
+
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: triggerElement,
+            start: "10% top",
+            end: "80% bottom",
+            scrub: 1,
+          },
+        })
+        .fromTo(".pillars_span-img", { width: "0%" }, { width: "100%" })
+        // .fromTo("[text-wrap]", { x: "-0.75em" }, { x: "0em" })
+        .from(".pillars_title", { yPercent: 35 }, { yPercent: 0 });
+  });
+
+  mm.add("(max-width: 767px)", () => {});
+}
+
 function initClubPage(container) {
   if (has('.network_component')) initClubNetwork(container)
   if (has('.gallery_component')) initClubGallery(container)
   if (has("[data-stacking-cards-item]")) initStackingCardsParallax();
+  if (has('.section_pillars')) initPillarsAnimation(container)
 }
 
 
